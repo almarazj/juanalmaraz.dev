@@ -328,7 +328,7 @@ juanalmaraz.dev/
 
 **Interfaces:**
 - Produces outputs `service_url`, `push_service_account`, `deployer_service_account`, `wif_provider`, `bucket_name`.
-- Resources: enabled APIs; Artifact Registry repo (Docker, cleanup policy keeping the last 5 images to stay under 0.5 GB); Cloud Run service (`min 0`, `max 2`, 512 MiB, concurrency 80, env `ADMIN_EMAIL`, `PUSH_SA`); Firestore native database `(default)` in `us-central1`, the same region as everything else; public-read Storage bucket in `us-central1` with uniform access; Pub/Sub topic `hosting-requests` and push subscription to `${service_url}/internal/ingest` with OIDC; log sink filtered to Firebase Hosting request logs publishing to the topic; uptime check on `https://juanalmaraz.dev/` every 5 minutes; budget of 1 USD with 50%, 90%, 100% alerts to the owner; WIF pool and provider bound to the GitHub repo `almarazj/juanalmaraz.dev` on `refs/heads/main`; Cloudflare DNS records required by Firebase Hosting's custom domain (DNS only, not proxied, so Hosting can issue the certificate).
+- Resources: enabled APIs; Artifact Registry repo (Docker, cleanup policy keeping the last 5 images to stay under 0.5 GB); Cloud Run service (`min 0`, `max 2`, 512 MiB, concurrency 80, env `ADMIN_EMAIL`, `PUSH_SA`); Firestore native database `(default)` in `us-central1`, the same region as everything else; public-read Storage bucket in `us-central1` with uniform access; Pub/Sub topic `hosting-requests` and push subscription to `${service_url}/internal/ingest` with OIDC; log sink filtered to Firebase Hosting request logs publishing to the topic; uptime check on `https://juanalmaraz.dev/` every 5 minutes; budget of 1 USD with 50%, 90%, 100% alerts to the owner; WIF pool and provider bound to the GitHub repo `almarazj/juanalmaraz.dev` on release tags `refs/tags/v*` only; Cloudflare DNS records required by Firebase Hosting's custom domain (DNS only, not proxied, so Hosting can issue the certificate).
 
 - [ ] **Step 1: `terraform fmt -check` and `terraform validate`** in CI on every change under `infra/`.
 - [ ] **Step 2: `tflint`** with the google ruleset, expect no warnings.
@@ -343,7 +343,7 @@ juanalmaraz.dev/
 - Test: `tests/e2e/deployed.spec.ts` (runs against `BASE_URL`)
 
 **Interfaces:**
-- `deploy.yml` runs on push to `main`: `pnpm check`, build image tagged with the commit SHA, push to Artifact Registry, `gcloud run deploy`, `firebase deploy --only hosting`, then `pnpm e2e:deployed`; build args set `PUBLIC_VERSION` from `package.json`, `PUBLIC_COMMIT`, `PUBLIC_BRANCH`.
+- `deploy.yml` runs only on push of a release tag `v*` (never on branch pushes); it fails fast if the tag does not match `package.json` version or does not point to a commit on `main`: `pnpm check`, build image tagged with the commit SHA, push to Artifact Registry, `gcloud run deploy`, `firebase deploy --only hosting`, then `pnpm e2e:deployed`; build args set `PUBLIC_VERSION` from `package.json`, `PUBLIC_COMMIT`, `PUBLIC_BRANCH`.
 
 - [ ] **Step 1: Test** `deployed.spec.ts`: home returns 200 with `cache-control` containing `s-maxage=300`; second request has the Hosting cache hit header; `/api/me` returns JSON; `/api/status` overall is `ok`; `/admin` without session returns 403; footer stamp matches the deployed version.
 - [ ] **Step 2: Dry run** the workflow on a branch with deploy steps disabled, expect green.
