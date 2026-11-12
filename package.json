@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.12",
+    "@astrojs/rss": "^4.0.19",
     "@aws-sdk/client-dynamodb": "^3.1166.0",
     "@aws-sdk/client-s3": "^3.1166.0",
     "@aws-sdk/client-ssm": "^3.1166.0",

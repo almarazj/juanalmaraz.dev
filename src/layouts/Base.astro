@@ -4,6 +4,7 @@ import '../styles/base.css';
 import Header from '../components/site/Header.astro';
 import Footer from '../components/site/Footer.astro';
 import Palette from '../components/site/Palette.astro';
+import { SITE } from '../lib/site';
 
 interface Props {
   title: string;
@@ -12,6 +13,8 @@ interface Props {
 }
 
 const { title, description, ogImage } = Astro.props;
+const canonical = SITE + (Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/$/, ''));
+const beacon = import.meta.env.PUBLIC_CF_BEACON;
 const fonts =
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap';
 ---
@@ -25,7 +28,15 @@ const fonts =
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={ogImage ?? `${SITE}/og.png`} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage ?? `${SITE}/og.png`} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="Juan Almaraz" href="/rss.xml" />
     <script is:inline>
       try {
         if (localStorage.getItem('mode') === 'dark') document.documentElement.dataset.mode = 'dark';
@@ -42,5 +53,10 @@ const fonts =
     <slot />
     <Footer />
     <Palette />
+    {
+      beacon && (
+        <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: beacon })} />
+      )
+    }
   </body>
 </html>
