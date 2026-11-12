@@ -1,12 +1,16 @@
 import type { APIRoute } from 'astro';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { config, s3 } from '../../../lib/aws';
 import { getRaw, saveWithRevision } from '../../../lib/content/repo';
-import { bucket } from '../../../lib/firebase';
 import { json } from '../../../lib/http/json';
 import { processImage } from '../../../lib/images/process';
 import { imageUrl } from '../../../lib/images/url';
 
-const DEFAULT_RESUME = 'resume/juan-almaraz.pdf';
-const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const DEFAULT_RESUME = 'files/resume/juan-almaraz.pdf';
+const MB = 1024 * 1024;
+const MAX_BYTES = { image: 15 * MB, resume: 5 * MB };
+const KEY = /^incoming\/[0-9a-f-]{36}$/;
 
 // "My Photo (2).JPG" -> "my-photo-2"; the timestamp keeps re-uploads from overwriting cached variants.
 const baseFor = (name: string) => {
@@ -14,31 +18,52 @@ const baseFor = (name: string) => {
   return `uploads/${stem || 'image'}-${Date.now().toString(36)}`;
 };
 
+const bad = (error: string, status = 400) => json({ error }, 'private', status);
+
 export const POST: APIRoute = async ({ request, locals }) => {
-  const form = await request.formData().catch(() => null);
-  const file = form?.get('file');
-  if (!(file instanceof File) || file.size === 0) return json({ error: 'file required' }, 'private', 400);
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const body = await request.json().catch(() => null);
+  const kind: 'image' | 'resume' | undefined = body?.kind === 'image' || body?.kind === 'resume' ? body.kind : undefined;
+  if (!kind) return bad('kind required');
+  const Bucket = config().bucket;
 
-  if (form!.get('kind') === 'resume') {
-    if (file.size > MAX_PDF_BYTES || bytes.subarray(0, 5).toString('latin1') !== '%PDF-') {
-      return json({ error: 'Not a PDF (max 10 MB)' }, 'private', 400);
-    }
-    const site = await getRaw('site', 'main');
-    if (!site) return json({ error: 'Create the site page first' }, 'private', 409);
-    const path = typeof site.resumePath === 'string' && site.resumePath ? site.resumePath : DEFAULT_RESUME;
-    await bucket().file(path).save(bytes, { contentType: 'application/pdf' });
-    if (site.resumePath !== path) await saveWithRevision('site', 'main', { ...site, resumePath: path }, locals.adminEmail!);
-    return new Response(null, { status: 204 });
+  if (body.step === 'presign') {
+    const key = `incoming/${crypto.randomUUID()}`;
+    const post = await createPresignedPost(s3(), {
+      Bucket,
+      Key: key,
+      Conditions: [['content-length-range', 1, MAX_BYTES[kind]]],
+      Expires: 300,
+    });
+    return json({ ...post, key }, 'private');
   }
+  if (body.step !== 'process') return bad('step required');
 
-  const alt = String(form!.get('alt') ?? '').trim();
-  if (!alt) return json({ error: 'Alt text required' }, 'private', 400);
+  const key = body.key;
+  if (typeof key !== 'string' || !KEY.test(key)) return bad('Invalid upload key');
+  const alt = String(body.alt ?? '').trim();
+  if (kind === 'image' && !alt) return bad('Alt text required');
+  const site = kind === 'resume' ? await getRaw('site', 'main') : null;
+  if (kind === 'resume' && !site) return bad('Create the site page first', 409);
+
   try {
-    const ref = await processImage(bytes, baseFor(file.name), alt);
+    const object = await s3().send(new GetObjectCommand({ Bucket, Key: key })).catch(() => null);
+    if (!object?.Body) return bad('Upload not found', 404);
+    const bytes = Buffer.from(await object.Body.transformToByteArray());
+
+    if (kind === 'resume') {
+      if (bytes.length > MAX_BYTES.resume || bytes.subarray(0, 5).toString('latin1') !== '%PDF-') return bad('Not a PDF (max 5 MB)');
+      const path = typeof site!.resumePath === 'string' && site!.resumePath ? site!.resumePath : DEFAULT_RESUME;
+      await s3().send(new PutObjectCommand({ Bucket, Key: path, Body: bytes, ContentType: 'application/pdf' }));
+      if (site!.resumePath !== path) await saveWithRevision('site', 'main', { ...site!, resumePath: path }, locals.adminEmail!);
+      return new Response(null, { status: 204 });
+    }
+
+    const ref = await processImage(bytes, baseFor(String(body.name ?? '')), alt);
     return json({ ref, preview: imageUrl(ref, ref.widths.find((w) => w >= 960) ?? ref.widths.at(-1)!) }, 'private');
   } catch (err) {
-    if ((err as Error).message === 'Unsupported image') return json({ error: 'Unsupported image' }, 'private', 400);
+    if ((err as Error).message === 'Unsupported image') return bad('Unsupported image');
     throw err;
+  } finally {
+    await s3().send(new DeleteObjectCommand({ Bucket, Key: key })).catch(() => undefined);
   }
 };

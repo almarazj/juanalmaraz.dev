@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import sharp from 'sharp';
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { config, ddb } from '../../src/lib/aws';
-import { auth, bucket } from '../../src/lib/firebase';
+import { config, ddb, s3 } from '../../src/lib/aws';
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { auth } from '../../src/lib/firebase';
 import { getRaw, listAll, listRevisions } from '../../src/lib/content/repo';
 
 const ADMIN = 'owner@example.com';
@@ -13,6 +14,7 @@ async function deletePost(slug: string) {
   const keys = [{ pk: 'posts', sk: slug }, ...(await listRevisions('posts', slug, 100)).map((r) => ({ pk: `rev#posts#${slug}`, sk: r.id }))];
   await Promise.all(keys.map((Key) => ddb().send(new DeleteCommand({ TableName, Key }))));
 }
+const Key = (k: string) => ({ Bucket: config().bucket, Key: k });
 const authHost = () => process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099';
 
 // Signs in through the Auth emulator's fake Google IdP, as the popup would.
@@ -170,16 +172,16 @@ test.describe('owner', () => {
     try {
       expect(ref).toMatchObject({ widths: [480, 960, 1600], alt: 'An orange banner' });
       expect(ref.base).toMatch(/^uploads\/e2e-banner-[a-z0-9]+$/);
-      for (const w of ref.widths) expect((await bucket().file(`images/${ref.base}-${w}.webp`).exists())[0]).toBe(true);
+      for (const w of ref.widths) await s3().send(new HeadObjectCommand(Key(`images/${ref.base}-${w}.webp`)));
       await expect(form.locator('[data-upload-preview]')).toHaveJSProperty('naturalWidth', 960);
     } finally {
-      await Promise.all(ref.widths.map((w) => bucket().file(`images/${ref.base}-${w}.webp`).delete({ ignoreNotFound: true })));
+      await Promise.all(ref.widths.map((w) => s3().send(new DeleteObjectCommand(Key(`images/${ref.base}-${w}.webp`)))));
     }
   });
 
   test('uploads a new resume and /resume.pdf serves it', async ({ page }) => {
     const { resumePath } = (await getRaw('site', 'main')) as { resumePath: string };
-    const [original] = await bucket().file(resumePath).download();
+    const original = Buffer.from(await (await s3().send(new GetObjectCommand(Key(resumePath)))).Body!.transformToByteArray());
     const pdf = Buffer.from(`%PDF-1.4\n% e2e-resume-${Date.now()}\n%%EOF\n`);
     try {
       await page.goto('/admin');
@@ -194,7 +196,7 @@ test.describe('owner', () => {
       await page.getByRole('button', { name: 'Upload resume' }).click();
       await expect(page.getByText(/Upload failed: Not a PDF/)).toBeVisible();
     } finally {
-      await bucket().file(resumePath).save(original, { contentType: 'application/pdf' });
+      await s3().send(new PutObjectCommand({ ...Key(resumePath), Body: original, ContentType: 'application/pdf' }));
     }
   });
 });

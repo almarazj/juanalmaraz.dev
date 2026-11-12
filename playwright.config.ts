@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 // Tests and the server both read DynamoDB Local; workers inherit this.
 process.env.AWS_ENDPOINT_URL_DYNAMODB ??= 'http://localhost:8000';
+process.env.AWS_ENDPOINT_URL_S3 ??= 'http://localhost:9000';
 
 // E2E_PORT lets the suite run beside a dev server on 4321.
 const port = Number(process.env.E2E_PORT ?? 4321);

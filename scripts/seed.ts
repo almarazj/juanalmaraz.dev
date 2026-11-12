@@ -5,14 +5,15 @@ import {
   AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema,
   FeedEntrySchema, PostSchema, ProjectSchema, SiteSchema,
 } from '../src/lib/content/schemas';
-import { bucket } from '../src/lib/firebase';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { config, s3 } from '../src/lib/aws';
 import { processImage } from '../src/lib/images/process';
 import { readFile } from 'node:fs/promises';
 import type { ZodType } from 'zod';
 
 process.env.FIRESTORE_EMULATOR_HOST ??= 'localhost:8080';
 process.env.AWS_ENDPOINT_URL_DYNAMODB ??= 'http://localhost:8000';
-process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= '127.0.0.1:9199';
+process.env.AWS_ENDPOINT_URL_S3 ??= 'http://localhost:9000';
 
 // SAMPLE-ONLY: stand-in images copied from the old site.
 const oldSite = new URL('../tests/fixtures/images/', import.meta.url).pathname;
@@ -39,7 +40,7 @@ const offsets = objs.map((o, i) => { const at = pdf.length; pdf += `${i + 1} 0 o
 const xref = pdf.length;
 pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
 pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-await bucket().file('resume/juan-almaraz.pdf').save(pdf, { contentType: 'application/pdf' });
+await s3().send(new PutObjectCommand({ Bucket: config().bucket, Key: 'files/resume/juan-almaraz.pdf', Body: pdf, ContentType: 'application/pdf' }));
 
 const now = Date.UTC(2026, 10, 1);
 const by = 'seed';
@@ -107,7 +108,7 @@ const about = {
 const site = {
   roleLine: 'Backend Engineer · Node.js · GCP',
   lede: 'I build APIs and data pipelines. Before software I studied sound engineering, so I still think about systems as signals.',
-  resumePath: 'resume/juan-almaraz.pdf',
+  resumePath: 'files/resume/juan-almaraz.pdf',
   photo: profile,
   now: { building: 'juanalmaraz.dev', reading: 'Designing Data-Intensive Applications' },
 };

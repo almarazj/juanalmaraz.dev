@@ -1,5 +1,6 @@
 import sharp from 'sharp';
-import { bucket } from '../firebase';
+import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { config, s3 } from '../aws';
 import type { ImageRef } from '../content/schemas';
 import { objectPath } from './url';
 
@@ -31,13 +32,13 @@ export async function processImage(
 
   await Promise.all(
     widths.map(async (w) => {
-      const file = bucket().file(objectPath(base, w));
-      if (opts.skipExisting && (await file.exists())[0]) return;
-      const data = await sharp(input).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
-      await file.save(data, {
-        contentType: 'image/webp',
-        metadata: { cacheControl: 'public, max-age=31536000, immutable' },
-      });
+      const Key = objectPath(base, w);
+      const Bucket = config().bucket;
+      if (opts.skipExisting && (await s3().send(new HeadObjectCommand({ Bucket, Key })).then(() => true, () => false))) return;
+      const Body = await sharp(input).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+      await s3().send(new PutObjectCommand({
+        Bucket, Key, Body, ContentType: 'image/webp', CacheControl: 'public, max-age=31536000, immutable',
+      }));
     }),
   );
   return { base, widths, alt };

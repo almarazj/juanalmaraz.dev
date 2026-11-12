@@ -15,6 +15,8 @@
 </form>
 
 <script>
+  import { adminUpload } from '../../lib/admin/upload';
+
   for (const form of document.querySelectorAll<HTMLFormElement>('[data-image-upload]')) {
     const $ = <T extends HTMLElement>(s: string) => form.querySelector<T>(s)!;
     const error = $('[data-upload-error]');
@@ -25,10 +27,9 @@
       error.textContent = '';
       result.hidden = true;
       button.disabled = true;
-      const body = new FormData(form);
-      body.set('kind', 'image');
+      const fields = new FormData(form);
       try {
-        const res = await fetch('/admin/api/upload', { method: 'POST', body });
+        const res = await adminUpload('image', fields.get('file') as File, { alt: String(fields.get('alt')) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
         $<HTMLImageElement>('[data-upload-preview]').src = data.preview;

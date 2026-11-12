@@ -1,48 +1,47 @@
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { describe, expect, it } from 'vitest';
+import { config, s3 } from '../../src/lib/aws';
+import { processImage } from '../../src/lib/images/process';
+import { imageProps, imageUrl } from '../../src/lib/images/url';
 
-const saved = new Map<string, { data: Buffer; options: unknown }>();
-vi.mock('../../src/lib/firebase', async (orig) => ({
-  ...(await orig<typeof import('../../src/lib/firebase')>()),
-  bucket: () => ({
-    file: (path: string) => ({
-      exists: async () => [saved.has(path)],
-      save: async (data: Buffer, options: unknown) => void saved.set(path, { data, options }),
-    }),
-  }),
-}));
-
-const { processImage } = await import('../../src/lib/images/process');
-const { imageProps, imageUrl } = await import('../../src/lib/images/url');
+// Variants are written to the shared local bucket, so every test gets its own prefix.
+const run = Date.now().toString(36);
+let n = 0;
+const uniq = (base: string) => `r4-${run}-${n++}/${base}`;
+const Bucket = () => config().bucket;
+const head = (key: string) => s3().send(new HeadObjectCommand({ Bucket: Bucket(), Key: key }));
+const read = async (key: string) =>
+  Buffer.from(await (await s3().send(new GetObjectCommand({ Bucket: Bucket(), Key: key }))).Body!.transformToByteArray());
+const exists = (key: string) => head(key).then(() => true, () => false);
 
 const jpeg = (width: number) =>
   sharp({ create: { width, height: Math.round(width / 2), channels: 3, background: '#468' } }).jpeg().toBuffer();
 
-beforeEach(() => saved.clear());
-
 describe('processImage', () => {
   it('writes 480, 960 and 1600 WebP variants for a 2000px source', async () => {
-    const ref = await processImage(await jpeg(2000), 'projects/a', 'alt');
-    expect(ref).toEqual({ base: 'projects/a', widths: [480, 960, 1600], alt: 'alt' });
-    expect([...saved.keys()].sort()).toEqual(['images/projects/a-1600.webp', 'images/projects/a-480.webp', 'images/projects/a-960.webp']);
-    const first = saved.get('images/projects/a-960.webp')!;
-    expect((await sharp(first.data).metadata())).toMatchObject({ format: 'webp', width: 960 });
-    expect(first.options).toMatchObject({
-      contentType: 'image/webp',
-      metadata: { cacheControl: 'public, max-age=31536000, immutable' },
-    });
+    const base = uniq('a');
+    const ref = await processImage(await jpeg(2000), base, 'alt');
+    expect(ref).toEqual({ base, widths: [480, 960, 1600], alt: 'alt' });
+    for (const w of ref.widths) {
+      const key = `images/${base}-${w}.webp`;
+      expect(await head(key)).toMatchObject({ ContentType: 'image/webp', CacheControl: 'public, max-age=31536000, immutable' });
+      expect(await sharp(await read(key)).metadata()).toMatchObject({ format: 'webp', width: w });
+    }
+    expect(await exists(`images/${base}-2000.webp`)).toBe(false);
   });
 
   it('does not upscale a 600px source', async () => {
-    const ref = await processImage(await jpeg(600), 'b', 'alt');
+    const base = uniq('b');
+    const ref = await processImage(await jpeg(600), base, 'alt');
     expect(ref.widths).toEqual([480, 600]);
-    expect((await sharp(saved.get('images/b-600.webp')!.data).metadata()).width).toBe(600);
+    expect((await sharp(await read(`images/${base}-600.webp`)).metadata()).width).toBe(600);
   });
 
   it.each([[480, [480]], [960, [480, 960]], [1600, [480, 960, 1600]], [300, [300]]])(
     'lists exactly the real variants for a %ipx source',
     async (width, expected) => {
-      expect((await processImage(await jpeg(width), 'f', 'alt')).widths).toEqual(expected);
+      expect((await processImage(await jpeg(width), uniq('f'), 'alt')).widths).toEqual(expected);
     },
   );
 
@@ -50,13 +49,14 @@ describe('processImage', () => {
     // Stored 1000x400 with orientation 6 displays as 400x1000, so only 400 fits.
     const rotated = await sharp({ create: { width: 1000, height: 400, channels: 3, background: '#468' } })
       .jpeg().withMetadata({ orientation: 6 }).toBuffer();
-    const ref = await processImage(rotated, 'g', 'alt');
+    const base = uniq('g');
+    const ref = await processImage(rotated, base, 'alt');
     expect(ref.widths).toEqual([400]);
-    expect((await sharp(saved.get('images/g-400.webp')!.data).metadata()).width).toBe(400);
+    expect((await sharp(await read(`images/${base}-400.webp`)).metadata()).width).toBe(400);
   });
 
   it('keeps a source narrower than the smallest width as its only variant', async () => {
-    expect((await processImage(await jpeg(300), 'c', 'alt')).widths).toEqual([300]);
+    expect((await processImage(await jpeg(300), uniq('c'), 'alt')).widths).toEqual([300]);
   });
 
   it('rejects text and oversized input', async () => {
@@ -69,10 +69,11 @@ describe('processImage', () => {
   });
 
   it('skips objects that already exist', async () => {
-    await processImage(await jpeg(600), 'e', 'alt');
-    const before = saved.get('images/e-480.webp')!;
-    await processImage(await jpeg(600), 'e', 'alt', { skipExisting: true });
-    expect(saved.get('images/e-480.webp')).toBe(before);
+    const base = uniq('e');
+    await processImage(await jpeg(600), base, 'alt');
+    const before = (await head(`images/${base}-480.webp`)).ETag;
+    await processImage(await jpeg(600), base, 'alt', { skipExisting: true });
+    expect((await head(`images/${base}-480.webp`)).ETag).toBe(before);
   });
 });
 
@@ -84,19 +85,17 @@ describe('imageProps', () => {
 
 describe('imageUrl', () => {
   const ref = { base: 'projects/a', widths: [480, 960], alt: '' };
-  it('uses the public bucket URL in production', () => {
-    const env = { GOOGLE_CLOUD_PROJECT: 'p', STORAGE_BUCKET: 'bkt' };
-    expect(imageUrl(ref, 480, env)).toBe('https://storage.googleapis.com/bkt/images/projects/a-480.webp');
+  const prod = { TABLE_NAME: 't', MEDIA_BUCKET: 'bkt' };
+  const local = { AWS_ENDPOINT_URL_DYNAMODB: 'http://d', AWS_ENDPOINT_URL_S3: 'http://localhost:9000' };
+  it('is same-origin outside local', () => {
+    expect(imageUrl(ref, 480, prod)).toBe('/images/projects/a-480.webp');
   });
-  it('uses the emulator URL with an encoded object path', () => {
-    expect(imageUrl(ref, 480, { FIRESTORE_EMULATOR_HOST: 'x' })).toBe(
-      'http://127.0.0.1:9199/v0/b/demo-juanalmaraz.appspot.com/o/images%2Fprojects%2Fa-480.webp?alt=media',
-    );
+  it('points at the local S3 bucket when local', () => {
+    expect(imageUrl(ref, 480, local)).toBe('http://localhost:9000/juanalmaraz-media-local/images/projects/a-480.webp');
   });
   it('builds a srcset with the widest variant as src', () => {
-    process.env.FIRESTORE_EMULATOR_HOST = 'x';
     const p = imageProps(ref, '100px');
     expect(p.src).toContain('a-960.webp');
-    expect(p.srcset).toMatch(/a-480\.webp\?alt=media 480w, .*a-960\.webp\?alt=media 960w$/);
+    expect(p.srcset).toMatch(/a-480\.webp 480w, .*a-960\.webp 960w$/);
   });
 });
