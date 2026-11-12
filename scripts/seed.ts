@@ -1,5 +1,4 @@
 // Seeds the Firestore emulator. SAMPLE-ONLY values are marked; replace real content via /admin (Task 15).
-import { db } from '../src/lib/firebase';
 import { saveFeed, saveWithRevision, type Collection } from '../src/lib/content/repo';
 import {
   AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema,
@@ -11,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import type { ZodType } from 'zod';
 
 process.env.FIRESTORE_EMULATOR_HOST ??= 'localhost:8080';
+process.env.AWS_ENDPOINT_URL_DYNAMODB ??= 'http://localhost:8000';
 process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= '127.0.0.1:9199';
 
 // SAMPLE-ONLY: stand-in images copied from the old site.
@@ -151,8 +151,8 @@ for (const [id, d] of projects) await put('projects', id, ProjectSchema, d);
 for (const e of education) { const { id, ...d } = e; await put('education', id, EducationSchema, d); }
 for (const [id, d] of certificates) await put('certificates', id, CertificateSchema, d);
 for (const [id, d] of posts) await put('posts', id, PostSchema, d);
-await db().doc('about/main').set(AboutSchema.parse(about));
-await db().doc('site/main').set(SiteSchema.parse(site));
+await saveWithRevision('about', 'main', AboutSchema.parse(about), by);
+await saveWithRevision('site', 'main', SiteSchema.parse(site), by);
 // SAMPLE-ONLY: fake traffic so the hero tail has rows before real logs arrive; times are relative to seeding.
 const at = Date.now();
 const feed = [

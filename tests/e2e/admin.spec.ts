@@ -1,9 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
 import sharp from 'sharp';
-import { auth, bucket, db } from '../../src/lib/firebase';
+import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { config, ddb } from '../../src/lib/aws';
+import { auth, bucket } from '../../src/lib/firebase';
+import { getRaw, listAll, listRevisions } from '../../src/lib/content/repo';
 
 const ADMIN = 'owner@example.com';
 const OTHER = 'someone@example.com';
+
+async function deletePost(slug: string) {
+  const TableName = config().table;
+  const keys = [{ pk: 'posts', sk: slug }, ...(await listRevisions('posts', slug, 100)).map((r) => ({ pk: `rev#posts#${slug}`, sk: r.id }))];
+  await Promise.all(keys.map((Key) => ddb().send(new DeleteCommand({ TableName, Key }))));
+}
 const authHost = () => process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099';
 
 // Signs in through the Auth emulator's fake Google IdP, as the popup would.
@@ -52,7 +61,7 @@ test.describe('non-admin', () => {
       data: { collection: 'posts', id: 'hijack', data: { title: 'x', summary: '', bodyMd: '', tags: [], status: 'published' } },
     });
     expect(save.status()).toBe(403);
-    expect((await db().doc('posts/hijack').get()).exists).toBe(false);
+    expect(await getRaw('posts', 'hijack')).toBeNull();
   });
 
   test('a non-allowlisted account signing in from the page is told it is not allowed', async ({ page }) => {
@@ -133,20 +142,20 @@ test.describe('owner', () => {
       await page.goto('/writing');
       await expect(page.getByText(title)).toHaveCount(0);
     } finally {
-      await db().recursiveDelete(db().doc(`posts/${slug}`));
+      await deletePost(slug);
     }
   });
 
   test('creating an id that exists is refused inline', async ({ page }) => {
     await page.goto('/admin/education/new');
-    const existing = (await db().collection('education').limit(1).get()).docs[0].id;
+    const existing = (await listAll('education'))[0].id;
     await page.getByLabel('id', { exact: true }).fill(existing);
     await page.getByLabel('title').fill('Dup');
     await page.getByLabel('school').fill('Dup');
     await page.getByLabel('start').fill('2020-01');
     await page.getByRole('button', { name: 'Create' }).click();
     await expect(page.locator('#err-id')).toHaveText('Already exists');
-    expect((await db().doc(`education/${existing}`).get()).data()!.title).not.toBe('Dup');
+    expect((await getRaw('education', existing))!.title).not.toBe('Dup');
   });
 
   test('uploads an image and gets three WebP variants', async ({ page }) => {
@@ -169,7 +178,7 @@ test.describe('owner', () => {
   });
 
   test('uploads a new resume and /resume.pdf serves it', async ({ page }) => {
-    const { resumePath } = (await db().doc('site/main').get()).data() as { resumePath: string };
+    const { resumePath } = (await getRaw('site', 'main')) as { resumePath: string };
     const [original] = await bucket().file(resumePath).download();
     const pdf = Buffer.from(`%PDF-1.4\n% e2e-resume-${Date.now()}\n%%EOF\n`);
     try {

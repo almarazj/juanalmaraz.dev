@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db } from '../../src/lib/firebase';
-import { listPublished, listRevisions, restoreRevision, saveWithRevision } from '../../src/lib/content/repo';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { config, ddb } from '../../src/lib/aws';
+import {
+  AlreadyExistsError, DocumentTooLargeError, getRaw, listPublished, listRevisions, restoreRevision, saveWithRevision,
+} from '../../src/lib/content/repo';
+import { resetTable } from '../../scripts/local-aws';
+
+const put = (pk: string, sk: string, item: object) =>
+  ddb().send(new PutCommand({ TableName: config().table, Item: { pk, sk, ...item } }));
 
 const post = (title: string, status: 'draft' | 'published', publishedAt = 1) => ({
   title, summary: 's', bodyMd: 'b', tags: [], status, publishedAt, updatedAt: publishedAt,
 });
 
-beforeEach(async () => {
-  const res = await fetch(
-    `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-juanalmaraz/databases/(default)/documents`,
-    { method: 'DELETE' },
-  );
-  expect(res.ok).toBe(true);
-});
+beforeEach(resetTable);
 
 describe('repo', () => {
   it('saveWithRevision creates exactly one revision per call', async () => {
@@ -24,8 +25,22 @@ describe('repo', () => {
 
   it('saveWithRevision with create refuses to overwrite an existing document', async () => {
     await saveWithRevision('posts', 'c', post('C', 'draft'), 'me', { create: true });
-    await expect(saveWithRevision('posts', 'c', post('C2', 'draft'), 'me', { create: true })).rejects.toThrow();
+    await expect(saveWithRevision('posts', 'c', post('C2', 'draft'), 'me', { create: true })).rejects.toThrow(AlreadyExistsError);
     expect(await listRevisions('posts', 'c')).toHaveLength(1);
+    expect((await getRaw('posts', 'c'))?.title).toBe('C');
+  });
+
+  it('rejects a document over the size limit before writing anything', async () => {
+    const big = { ...post('big', 'draft'), bodyMd: 'x'.repeat(351 * 1024) };
+    await expect(saveWithRevision('posts', 'big', big, 'me')).rejects.toThrow(DocumentTooLargeError);
+    expect(await listRevisions('posts', 'big')).toEqual([]);
+    expect(await getRaw('posts', 'big')).toBeNull();
+  });
+
+  it('listRevisions returns the newest first, up to the limit', async () => {
+    for (const t of ['1', '2', '3']) await saveWithRevision('posts', 'r', post(t, 'draft'), 'me');
+    const revs = await listRevisions('posts', 'r', 2);
+    expect(revs.map((r) => r.data.title)).toEqual(['3', '2']);
   });
 
   it('saves documents with explicitly undefined optional fields', async () => {
@@ -43,8 +58,8 @@ describe('repo', () => {
 
   it('listPublished skips documents that fail their schema', async () => {
     const cert = { name: 'C', issuer: 'I', year: 2025, order: 1 };
-    await db().doc('certificates/good').set({ ...cert, verifyUrl: 'https://example.com/' });
-    await db().doc('certificates/bad').set({ ...cert, order: 2, verifyUrl: 'javascript:alert(1)' });
+    await put('certificates', 'good', { ...cert, verifyUrl: 'https://example.com/' });
+    await put('certificates', 'bad', { ...cert, order: 2, verifyUrl: 'javascript:alert(1)' });
     const list = await listPublished('certificates');
     expect(list.map((c) => c.id)).toEqual(['good']);
   });
@@ -55,7 +70,7 @@ describe('repo', () => {
     const revs = await listRevisions('posts', 'a');
     const first = revs.find((r) => r.data.title === 'first')!;
     await restoreRevision('posts', 'a', first.id, 'me');
-    expect((await db().doc('posts/a').get()).data()?.title).toBe('first');
+    expect((await getRaw('posts', 'a'))?.title).toBe('first');
     expect(await listRevisions('posts', 'a')).toHaveLength(3);
   });
 });
