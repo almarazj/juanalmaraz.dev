@@ -6,3 +6,9 @@ playwright-report
 *.log
 .superpowers/
 .claude/worktrees/
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.tfplan
+infra/terraform.tfvars
+infra/build/

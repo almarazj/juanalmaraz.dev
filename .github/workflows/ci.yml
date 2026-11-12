@@ -17,3 +17,30 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: docker compose up -d --wait
       - run: pnpm check
+
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      TF: docker run --rm -v ${{ github.workspace }}:/repo -w /repo/infra hashicorp/terraform:1.17.1
+      TFLINT: docker run --rm -e GITHUB_TOKEN -e TFLINT_PLUGIN_DIR=/repo/.tflint.d -v ${{ github.workspace }}:/repo -w /repo/infra ghcr.io/terraform-linters/tflint:v0.65.0
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - 'lambdas/**'
+              - '.github/workflows/ci.yml'
+      - if: steps.changes.outputs.infra == 'true'
+        run: $TF fmt -check -recursive
+      - if: steps.changes.outputs.infra == 'true'
+        run: $TF init -backend=false -input=false
+      - if: steps.changes.outputs.infra == 'true'
+        run: $TF validate
+      - if: steps.changes.outputs.infra == 'true'
+        run: $TF test
+      - if: steps.changes.outputs.infra == 'true'
+        run: $TFLINT --init && $TFLINT --recursive --config /repo/infra/.tflint.hcl

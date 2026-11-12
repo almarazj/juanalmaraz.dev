@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+admin_email        = "you@example.com"
+budget_alert_email = "you@example.com"
+google_client_id   = "000000000000-xxxxxxxx.apps.googleusercontent.com"
+cloudflare_zone_id = "0123456789abcdef0123456789abcdef"
+initial_image_tag  = "v0.1.0"
+
+# Optional
+# cf_beacon_token      = ""
+# reserved_concurrency = 2
