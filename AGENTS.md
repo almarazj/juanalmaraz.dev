@@ -7,6 +7,8 @@ The site is itself a backend showcase, so infra and code quality are part of the
 
 - `docs/design.md`: read before touching any UI; tokens, typography and each component's chosen behavior.
 - `docs/plan.md`: read before starting a task; task order, interfaces, tests, global constraints and which best-practice skills to load per task.
+- `docs/aws-agent-rules.md`: AWS Agent Toolkit rules for the new AWS experience (project Region `us-east-2`, CLI profile `juanalmaraz`); on conflict, this file wins.
+  @docs/aws-agent-rules.md
 
 ## Stack
 
