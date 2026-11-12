@@ -36,10 +36,20 @@ test('tail pane renders cold and warm rows', async ({ page }) => {
   await expect(rows.nth(1)).toContainText(/\swarm\s/);
 });
 
-test('a visited page shows up in the tail within one poll', async ({ page, request }) => {
-  await request.get('/writing');
+test('a visited page is recorded by the middleware and shows up in the tail', async ({ page, request }) => {
+  // /api/experience is allowlisted but not in the seed, so a row for it can only come from the middleware.
+  expect((await request.get('/api/experience')).ok()).toBe(true);
+  const feed = await (await request.get('/api/requests')).json();
+  expect(feed.entries).toContainEqual(expect.objectContaining({ m: 'GET', p: '/api/experience', s: 200, c: expect.stringMatching(/^(cold|warm)$/) }));
+
   await page.goto('/');
-  await expect(page.locator('[data-feed] li').filter({ hasText: /GET\s+\/writing\s+200/ }).first()).toBeVisible();
+  await expect(page.locator('[data-feed] li').filter({ hasText: /\/api\/experience\s+200/ }).first()).toBeVisible();
+});
+
+test('an unknown path is recorded as a 404 unknown-path entry', async ({ request }) => {
+  expect((await request.get('/wp-login.php')).status()).toBe(404);
+  const feed = await (await request.get('/api/requests')).json();
+  expect(feed.entries).toContainEqual(expect.objectContaining({ p: '404 · unknown path', s: 404 }));
 });
 
 test('does not poll /api/requests while the terminal is out of view', async ({ page }) => {

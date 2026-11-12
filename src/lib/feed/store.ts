@@ -13,6 +13,9 @@ export interface Feed {
 const DAY_S = 86_400;
 
 // The padded timestamp makes the sort key order by time; the random suffix keeps same-millisecond requests apart.
+// The write is awaited before the visitor's response, so a stalled table must not hold it for long.
+export const FEED_WRITE_TIMEOUT_MS = 250;
+
 export async function putEntry(e: FeedEntry): Promise<void> {
   await ddb().send(new PutCommand({
     TableName: config().table,
@@ -22,7 +25,7 @@ export async function putEntry(e: FeedEntry): Promise<void> {
       sk: `${String(e.t).padStart(13, '0')}#${randomBytes(3).toString('hex')}`,
       expiresAt: Math.floor(e.t / 1000) + DAY_S,
     },
-  }));
+  }), { abortSignal: AbortSignal.timeout(FEED_WRITE_TIMEOUT_MS) });
 }
 
 // Invalid rows are skipped so one bad write cannot take the whole feed down.

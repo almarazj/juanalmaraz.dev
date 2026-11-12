@@ -1,4 +1,4 @@
-import { putEntry } from './store';
+import { FEED_WRITE_TIMEOUT_MS, putEntry } from './store';
 import { sanitize, type RequestFacts } from './sanitize';
 
 let cold = true;
@@ -14,7 +14,12 @@ export function takeColdFlag(): boolean {
 export async function recordRequest(facts: RequestFacts, put = putEntry): Promise<void> {
   try {
     const entry = sanitize(facts);
-    if (entry) await put(entry);
+    if (!entry) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { name: 'TimeoutError' })), FEED_WRITE_TIMEOUT_MS);
+    });
+    await Promise.race([put(entry), deadline]).finally(() => clearTimeout(timer));
   } catch (err) {
     console.error(`feed write failed: ${err instanceof Error ? err.name : 'unknown'}`);
   }

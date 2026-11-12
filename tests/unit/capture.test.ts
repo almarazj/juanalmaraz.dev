@@ -30,4 +30,12 @@ describe('capture', () => {
     await recordRequest(facts('/admin/posts'), put);
     expect(put).not.toHaveBeenCalled();
   });
+
+  it('stops waiting for a write that never settles', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const t = Date.now();
+    await recordRequest(facts('/'), () => new Promise<void>(() => {}));
+    expect(Date.now() - t).toBeLessThan(1000);
+    expect(log).toHaveBeenCalledWith('feed write failed: TimeoutError');
+  });
 });
