@@ -4,7 +4,7 @@ import { checkServices, type Deps } from '../../src/lib/status/check';
 const NOW = 1_000_000_000;
 const deps = (over: Partial<Deps> = {}): Deps => ({
   now: () => NOW,
-  getFeed: async () => ({ entries: 3, updatedAt: NOW - 180_000, stats: { p50: 18, hitRatio: 0.94 } }),
+  getFeed: async () => ({ entries: 3, updatedAt: NOW - 180_000, stats: { p50: 18, coldRatio: 0.06 } }),
   pingDb: async () => {},
   bucketExists: async () => true,
   uptime: async () => null,
@@ -17,7 +17,7 @@ describe('checkServices', () => {
     const s = await checkServices(deps());
     expect(s.overall).toBe('ok');
     expect(s.uptime30d).toBeNull();
-    expect(row(s, 'Website (CDN)').detail).toBe('94% hit');
+    expect(row(s, 'Website (CDN)').detail).toBe('-');
     expect(row(s, 'App (Cloud Run)').detail).toBe('p50 18 ms');
     expect(row(s, 'Live request log').detail).toBe('last entry 3 min ago');
   });
@@ -28,7 +28,7 @@ describe('checkServices', () => {
     expect(s.overall).toBe('down');
   });
   it('warns when the feed is older than 24 hours', async () => {
-    const s = await checkServices(deps({ getFeed: async () => ({ entries: 3, updatedAt: NOW - 25 * 3_600_000, stats: { p50: 1, hitRatio: 1 } }) }));
+    const s = await checkServices(deps({ getFeed: async () => ({ entries: 3, updatedAt: NOW - 25 * 3_600_000, stats: { p50: 1, coldRatio: 1 } }) }));
     expect(row(s, 'Live request log').state).toBe('warn');
     expect(s.overall).toBe('warn');
   });
@@ -45,7 +45,7 @@ describe('checkServices', () => {
     expect(row(s, 'Website (CDN)').detail).toBe('-');
   });
   it('warns with "no entries yet" when the feed was never written', async () => {
-    const s = await checkServices(deps({ getFeed: async () => ({ entries: 0, updatedAt: 0, stats: { p50: 0, hitRatio: 0 } }) }));
+    const s = await checkServices(deps({ getFeed: async () => ({ entries: 0, updatedAt: 0, stats: { p50: 0, coldRatio: 0 } }) }));
     expect(row(s, 'Live request log')).toMatchObject({ state: 'warn', detail: 'no entries yet' });
   });
   it('treats dependencies that never resolve as down within the deadline', async () => {

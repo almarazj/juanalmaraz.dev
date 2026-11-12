@@ -1,5 +1,6 @@
 // Seeds the Firestore emulator. SAMPLE-ONLY values are marked; replace real content via /admin (Task 15).
-import { saveFeed, saveWithRevision, type Collection } from '../src/lib/content/repo';
+import { putEntry } from '../src/lib/feed/store';
+import { saveWithRevision, type Collection } from '../src/lib/content/repo';
 import {
   AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema,
   FeedEntrySchema, PostSchema, ProjectSchema, SiteSchema,
@@ -156,16 +157,16 @@ await saveWithRevision('site', 'main', SiteSchema.parse(site), by);
 // SAMPLE-ONLY: fake traffic so the hero tail has rows before real logs arrive; times are relative to seeding.
 const at = Date.now();
 const feed = [
-  ['GET', '/', 200, 'HIT', 12, 4],
-  ['GET', '/api/me', 200, 'HIT', 9, 11],
-  ['GET', '/writing/live-request-log', 200, 'MISS', 184, 26],
-  ['GET', '/api/now', 200, 'HIT', 7, 38],
-  ['HEAD', '/', 200, 'HIT', 5, 52],
-  ['GET', '/rss.xml', 200, 'MISS', 96, 75],
-  ['GET', '404 · unknown path', 404, 'MISS', 41, 130],
-  ['GET', '/writing', 200, 'HIT', 11, 190],
-  ['GET', '/api/stack', 200, 'MISS', 132, 260],
-  ['GET', '/resume.pdf', 200, 'HIT', 15, 400],
+  ['GET', '/', 200, 'warm', 12, 4],
+  ['GET', '/api/me', 200, 'warm', 9, 11],
+  ['GET', '/writing/live-request-log', 200, 'cold', 184, 26],
+  ['GET', '/api/now', 200, 'warm', 7, 38],
+  ['HEAD', '/', 200, 'warm', 5, 52],
+  ['GET', '/rss.xml', 200, 'cold', 96, 75],
+  ['GET', '404 · unknown path', 404, 'cold', 41, 130],
+  ['GET', '/writing', 200, 'warm', 11, 190],
+  ['GET', '/api/stack', 200, 'cold', 132, 260],
+  ['GET', '/resume.pdf', 200, 'warm', 15, 400],
 ] as const;
-await saveFeed(feed.map(([m, p, s, c, ms, ago]) => FeedEntrySchema.parse({ m, p, s, c, ms, t: at - ago * 1000 })), at);
+for (const [m, p, s, c, ms, ago] of feed) await putEntry(FeedEntrySchema.parse({ m, p, s, c, ms, t: at - ago * 1000 }));
 console.log('seeded');

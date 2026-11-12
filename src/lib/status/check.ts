@@ -7,7 +7,7 @@ export interface Status {
 }
 export interface Deps {
   now(): number;
-  getFeed(): Promise<{ entries: number; updatedAt: number; stats: { p50: number; hitRatio: number } }>;
+  getFeed(): Promise<{ entries: number; updatedAt: number; stats: { p50: number; coldRatio: number } }>;
   pingDb(): Promise<void>;
   bucketExists(): Promise<boolean>;
   uptime(): Promise<number | null>;
@@ -60,7 +60,7 @@ export async function checkServices(deps: Deps): Promise<Status> {
           detail: `last entry ${ago(checkedAt - feed.updatedAt)}`,
         };
   const services: Status['services'] = [
-    { name: 'Website (CDN)', state: 'ok', detail: hasData ? `${Math.round(feed.stats.hitRatio * 100)}% hit` : '-' },
+    { name: 'Website (CDN)', state: 'ok', detail: '-' },
     { name: 'App (Cloud Run)', state: 'ok', detail: hasData ? `p50 ${feed.stats.p50} ms` : '-' },
     { name: 'Database (Firestore)', state: db.ok ? 'ok' : 'down', detail: db.ok ? `${db.ms} ms` : 'unreachable' },
     { name: 'Storage', state: storage ? 'ok' : 'down', detail: storage ? 'bucket found' : 'bucket missing' },

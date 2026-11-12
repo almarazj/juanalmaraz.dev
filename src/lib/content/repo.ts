@@ -3,11 +3,8 @@ import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dyn
 import { randomBytes } from 'node:crypto';
 import type { z } from 'zod';
 import { config, ddb } from '../aws';
-import { db } from '../firebase';
-import { feedStats } from '../feed/stats';
 import {
-  AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema, FeedEntrySchema, PostSchema, ProjectSchema, SiteSchema,
-  type FeedEntry,
+  AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema, PostSchema, ProjectSchema, SiteSchema,
 } from './schemas';
 
 const schemas = {
@@ -182,26 +179,4 @@ export async function restoreRevision(
   delete data.savedAt;
   delete data.savedBy;
   await saveWithRevision(collection, id, data, savedBy);
-}
-
-export interface Feed {
-  entries: FeedEntry[];
-  updatedAt: number;
-  stats: ReturnType<typeof feedStats>;
-}
-const FEED = 'public/feed';
-
-// Invalid rows are skipped so one bad write cannot take the whole feed down.
-export async function getFeed(): Promise<Feed> {
-  const data = (await db().doc(FEED).get()).data();
-  const entries = (Array.isArray(data?.entries) ? data.entries : []).flatMap((e: unknown) => {
-    const r = FeedEntrySchema.safeParse(e);
-    return r.success ? [r.data] : [];
-  });
-  const updatedAt = typeof data?.updatedAt === 'number' ? data.updatedAt : 0;
-  return { entries, updatedAt, stats: feedStats(entries, updatedAt) };
-}
-
-export async function saveFeed(entries: FeedEntry[], now = Date.now()): Promise<void> {
-  await db().doc(FEED).set({ entries, updatedAt: now, stats: feedStats(entries, now) });
 }

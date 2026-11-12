@@ -18,7 +18,28 @@ test('tail pane lists seeded requests with relative times', async ({ page }) => 
   const rows = page.locator('[data-feed] li');
   await expect(rows.first()).toBeVisible();
   await expect(rows).toHaveCount(8);
-  await expect(rows.first()).toContainText(/(GET|POST|HEAD)\s+\/\S*\s+\d{3}\s+(HIT|MISS)\s+\d+ ms\s+\d+ (s|min|h|d) ago/);
+  await expect(rows.first()).toContainText(/(GET|POST|HEAD)\s+\/\S*\s+\d{3}\s+(cold|warm)\s+\d+ ms\s+\d+ (s|min|h|d) ago/);
+});
+
+test('tail pane renders cold and warm rows', async ({ page }) => {
+  const t = Date.now();
+  const entries = [
+    { m: 'GET', p: '/', s: 200, c: 'cold', ms: 480, t },
+    { m: 'GET', p: '/writing', s: 200, c: 'warm', ms: 12, t: t - 1000 },
+  ];
+  await page.route('**/api/requests', (route) => route.fulfill({ json: { entries, updatedAt: t, stats: {} } }));
+  await page.goto('/');
+  const rows = page.locator('[data-feed] li');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText(/\scold\s/);
+  await expect(rows.nth(0).locator('.c')).toHaveClass(/hit/);
+  await expect(rows.nth(1)).toContainText(/\swarm\s/);
+});
+
+test('a visited page shows up in the tail within one poll', async ({ page, request }) => {
+  await request.get('/writing');
+  await page.goto('/');
+  await expect(page.locator('[data-feed] li').filter({ hasText: /GET\s+\/writing\s+200/ }).first()).toBeVisible();
 });
 
 test('does not poll /api/requests while the terminal is out of view', async ({ page }) => {

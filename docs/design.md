@@ -58,7 +58,7 @@ Used by the hero terminal, code blocks and the status tooltip; identical in both
 | `--g-line` | `#4b5159` | Dividers |
 | `--g-acc` | `#ffb15c` | Prompt `$`, strings, keywords |
 | `--g-ok` | `#7fe0a8` | 200, healthy |
-| `--g-info` | `#a9c1ff` | Cache HIT, functions |
+| `--g-info` | `#a9c1ff` | Cold start, functions |
 
 ### Tint chips
 

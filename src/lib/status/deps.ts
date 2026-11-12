@@ -1,6 +1,6 @@
 import { applicationDefault } from 'firebase-admin/app';
 import { bucket, db } from '../firebase';
-import { getFeed } from '../content/repo';
+import { getFeed } from '../feed/store';
 import type { Deps } from './check';
 
 const WINDOW_S = 30 * 86_400;

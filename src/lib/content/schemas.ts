@@ -88,7 +88,7 @@ export const FeedEntrySchema = z.object({
   m: z.enum(['GET', 'POST', 'HEAD']),
   p: z.string(),
   s: z.number().int(),
-  c: z.enum(['HIT', 'MISS']),
+  c: z.enum(['cold', 'warm']),
   ms: z.number().int().min(0),
   t: epoch,
 });
