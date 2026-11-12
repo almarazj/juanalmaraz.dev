@@ -40,14 +40,15 @@ test('a visited page is recorded by the middleware and shows up in the tail', as
   // /api/experience is allowlisted but not in the seed, so a row for it can only come from the middleware.
   expect((await request.get('/api/experience')).ok()).toBe(true);
   const feed = await (await request.get('/api/requests')).json();
-  const recorded = { m: 'GET', p: '/api/experience', s: 200, c: expect.stringMatching(/^(cold|warm)$/) };
-  expect(feed.entries).toContainEqual(expect.objectContaining(recorded));
+  expect(feed.entries).toContainEqual(expect.objectContaining({ m: 'GET', p: '/api/experience', s: 200, c: expect.stringMatching(/^(cold|warm)$/) }));
 
-  // Parallel workers push it past the terminal's 8 rows, so the page gets the recorded row on top.
-  const entry = feed.entries.find((e: { p: string }) => e.p === '/api/experience');
-  await page.route('**/api/requests', (route) => route.fulfill({ json: { ...feed, entries: [entry, ...feed.entries] } }));
-  await page.goto('/');
-  await expect(page.locator('[data-feed] li').filter({ hasText: /\/api\/experience\s+200/ }).first()).toBeVisible();
+  // Parallel workers can push the row past the pane's 8 rows before the page loads, so visit again until it is fresh.
+  const row = page.locator('[data-feed] li').filter({ hasText: /\/api\/experience\s+200/ }).first();
+  await expect(async () => {
+    expect((await request.get('/api/experience')).ok()).toBe(true);
+    await page.goto('/');
+    await expect(row).toBeVisible({ timeout: 1000 });
+  }).toPass();
 });
 
 test('an unknown path is recorded as a 404 unknown-path entry', async ({ request }) => {

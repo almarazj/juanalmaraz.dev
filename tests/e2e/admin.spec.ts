@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import sharp from 'sharp';
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { config, ddb, s3 } from '../../src/lib/aws';
@@ -93,6 +93,19 @@ test.describe('owner', () => {
 
     await page.context().addCookies([{ name: '__session', value: session, domain: 'localhost', path: '/admin' }]);
     await expectLockedOut(page);
+  });
+
+  test('a failed sign-out says so and stays on the page', async ({ page }) => {
+    const alert = page.getByRole('alert').filter({ hasText: 'Sign-out failed; you are still signed in.' });
+    for (const fail of [(r: Route) => r.fulfill({ status: 500, body: 'boom' }), (r: Route) => r.abort()]) {
+      await page.unrouteAll();
+      await page.route('**/admin/api/logout', fail);
+      await page.goto('/admin');
+      await expect(alert).toHaveCount(0);
+      await page.getByRole('button', { name: 'Sign out' }).click();
+      await expect(alert).toBeVisible();
+      await expect(page).toHaveURL(/\/admin$/);
+    }
   });
 
   test('edits a post with live preview, saves a draft, publishes and restores a revision', async ({ page }) => {

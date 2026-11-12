@@ -14,7 +14,12 @@ describe('adminFetch', () => {
     expect(fetchMock.mock.calls[0][1]?.body).toBe('abc');
   });
 
-  it('adds no hash header without a body', async () => {
+  it('hashes the empty string for a body-less POST', async () => {
+    await adminFetch('/admin/api/logout', { method: 'POST' });
+    expect(sent().get('x-amz-content-sha256')).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+  });
+
+  it('adds no hash header to a body-less GET', async () => {
     await adminFetch('/admin');
     expect(sent().has('x-amz-content-sha256')).toBe(false);
   });
