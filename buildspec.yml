@@ -16,22 +16,30 @@ phases:
       - RELEASE_TAG=$(scripts/release-check.sh)
       - echo "releasing $RELEASE_TAG"
       - pnpm install --frozen-lockfile
-      - pnpm check
+      - export PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")
+      # `pnpm check` would run the browser e2e on this host, which has no Playwright browsers, so it is split.
+      - docker compose up -d --wait && pnpm exec tsx scripts/local-aws.ts
+      - pnpm lint
+      - pnpm exec vitest run
+      # Reinstalls inside the container so native modules (sharp) match its platform.
+      - scripts/in-playwright.sh 'npm install -g pnpm@12.18.0 && pnpm install --frozen-lockfile && pnpm exec playwright test --reporter=list'
 
   build:
     commands:
       - VERSION=${RELEASE_TAG#v}
-      - COMMIT=$(git rev-parse --short=7 HEAD)
+      - COMMIT=$(git rev-parse HEAD | cut -c1-7)
       - REGISTRY=${ECR_REPOSITORY_URL%%/*}
       - aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+      # Provenance and SBOM attestations turn the manifest into an index, which Lambda rejects.
       - >-
-        docker buildx build --platform linux/arm64
+        docker buildx build --platform linux/arm64 --provenance=false --sbom=false
         --build-arg PUBLIC_VERSION="$VERSION" --build-arg PUBLIC_COMMIT="$COMMIT" --build-arg PUBLIC_BRANCH=main
         --build-arg PUBLIC_CF_BEACON="$PUBLIC_CF_BEACON"
         -t "$ECR_REPOSITORY_URL:$RELEASE_TAG" -t "$ECR_REPOSITORY_URL:$COMMIT" --push .
       - >-
-        aws ecr describe-images --repository-name "${ECR_REPOSITORY_URL#*/}" --image-ids imageTag="$RELEASE_TAG"
-        --query 'imageDetails[0].imageSizeInBytes' --output text | awk '{printf "compressed image size: %.1f MB\n", $1/1048576}'
+        SIZE=$(aws ecr describe-images --repository-name "${ECR_REPOSITORY_URL#*/}" --image-ids imageTag="$RELEASE_TAG"
+        --query 'imageDetails[0].imageSizeInBytes' --output text)
+      - echo "compressed image size: $((SIZE / 1048576)) MB"
 
   post_build:
     commands:
@@ -40,10 +48,5 @@ phases:
       # "none" is the pipeline's stand-in for "no override".
       - EXPECTED_VERSION=$VERSION
       - if [ -n "${EXPECTED_VERSION_OVERRIDE:-}" ] && [ "$EXPECTED_VERSION_OVERRIDE" != none ]; then EXPECTED_VERSION=$EXPECTED_VERSION_OVERRIDE; fi
-      - PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")
-      # Playwright's browsers need a supported Linux, so the deployed checks run in its official image.
-      - >-
-        scripts/deploy.sh "$ECR_REPOSITORY_URL:$RELEASE_TAG"
-        docker run --rm --ipc=host -v "$PWD:/work" -w /work
-        -e BASE_URL=https://juanalmaraz.dev -e FUNCTION_URL -e EXPECTED_VERSION="$EXPECTED_VERSION"
-        "mcr.microsoft.com/playwright:v$PLAYWRIGHT_VERSION-noble" npm run e2e:deployed
+      - export EXPECTED_VERSION BASE_URL=https://juanalmaraz.dev
+      - scripts/deploy.sh "$ECR_REPOSITORY_URL:$RELEASE_TAG" scripts/in-playwright.sh 'npm run e2e:deployed'

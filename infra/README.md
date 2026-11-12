@@ -82,7 +82,7 @@ REPO=$(terraform -chdir=infra output -raw ecr_repository_url)
 aws ecr get-login-password | docker login --username AWS --password-stdin "${REPO%%/*}"
 docker buildx build --platform linux/arm64 --provenance=false \
   --build-arg PUBLIC_VERSION="${TAG#v}" \
-  --build-arg PUBLIC_COMMIT="$(git rev-parse --short=7 HEAD)" \
+  --build-arg PUBLIC_COMMIT="$(git rev-parse HEAD | cut -c1-7)" \
   --build-arg PUBLIC_BRANCH="$(git branch --show-current)" \
   --build-arg PUBLIC_CF_BEACON='<beacon token or empty>' \
   -t "$REPO:$TAG" --push .

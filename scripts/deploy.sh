@@ -27,6 +27,9 @@ rollback() {
   exit "$status"
 }
 trap rollback EXIT
+# A build timeout or cancel sends TERM; exiting through the EXIT trap keeps an unverified version from staying live.
+trap 'exit 143' TERM
+trap 'exit 130' INT
 
 aws lambda update-function-code --function-name "$FUNCTION_NAME" --image-uri "$image" >/dev/null
 aws lambda wait function-updated-v2 --function-name "$FUNCTION_NAME"
@@ -39,4 +42,9 @@ previous=$current
 aws lambda update-alias --function-name "$FUNCTION_NAME" --name live --function-version "$version" >/dev/null
 invalidate
 
-"$@"
+# Background plus wait lets a signal run the trap at once instead of after the verify command ends.
+"$@" &
+verify=$!
+trap 'kill "$verify" 2>/dev/null || true; exit 143' TERM
+trap 'kill "$verify" 2>/dev/null || true; exit 130' INT
+wait "$verify"

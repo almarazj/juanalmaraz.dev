@@ -1,6 +1,6 @@
 services:
   dynamodb:
-    image: amazon/dynamodb-local:3.1.0
+    image: public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local:3.1.0
     command: -jar DynamoDBLocal.jar -inMemory -sharedDb
     ports: ["8000:8000"]
     healthcheck:
