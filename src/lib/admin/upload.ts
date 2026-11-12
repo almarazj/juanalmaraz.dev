@@ -1,7 +1,9 @@
+import { adminFetch } from './fetch';
+
 // Browser side of the two-step upload: original straight to S3, then the app processes it.
 export async function adminUpload(kind: 'image' | 'resume', file: File, extra: Record<string, string> = {}): Promise<Response> {
   const post = (data: object) =>
-    fetch('/admin/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    adminFetch('/admin/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   const presign = await post({ step: 'presign', kind });
   if (!presign.ok) return presign;
   const { url, fields, key } = await presign.json();

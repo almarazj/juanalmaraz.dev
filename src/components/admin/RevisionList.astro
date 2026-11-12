@@ -37,12 +37,14 @@ const when = (ms: number) => new Date(ms).toISOString().replace('T', ' ').slice(
 </section>
 
 <script>
+  import { adminFetch } from '../../lib/admin/fetch';
+
   const list = document.querySelector<HTMLElement>('.revisions');
   list?.addEventListener('click', async (e) => {
     const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-restore]');
     if (!button) return;
     button.disabled = true;
-    const res = await fetch('/admin/api/restore', {
+    const res = await adminFetch('/admin/api/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ collection: list.dataset.collection, id: list.dataset.id, revisionId: button.dataset.restore }),

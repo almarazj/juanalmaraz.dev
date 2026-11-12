@@ -45,9 +45,11 @@ const email = Astro.locals.adminEmail;
 </html>
 
 <script>
+  import { adminFetch } from '../lib/admin/fetch';
+
   document.querySelector('[data-sign-out]')?.addEventListener('click', async () => {
-    await fetch('/admin/api/session', { method: 'DELETE' });
-    location.assign('/admin/login');
+    const res = await adminFetch('/admin/api/logout', { method: 'POST' });
+    location.assign(res.ok ? (await res.json()).logoutUrl : '/admin/login');
   });
 </script>
 

@@ -13,7 +13,7 @@
     "build": "astro build",
     "test": "pnpm services && firebase emulators:exec --only firestore --project demo-juanalmaraz \"vitest run\"",
     "seed": "tsx scripts/seed.ts",
-    "e2e": "pnpm services && firebase emulators:exec --only auth,firestore,storage --project demo-juanalmaraz \"playwright test\"",
+    "e2e": "pnpm services && firebase emulators:exec --only firestore,storage --project demo-juanalmaraz \"playwright test\"",
     "lint": "astro check && eslint .",
     "check": "pnpm lint && pnpm test && pnpm e2e"
   },
@@ -27,7 +27,7 @@
     "@aws-sdk/s3-presigned-post": "^3.1166.0",
     "@shikijs/rehype": "^4.6.0",
     "astro": "^7.4.10",
-    "firebase": "^13.2.0",
+    "aws-jwt-verify": "^5.2.1",
     "firebase-admin": "^14.5.0",
     "hast-util-to-string": "^3.0.1",
     "rehype-sanitize": "^6.0.0",

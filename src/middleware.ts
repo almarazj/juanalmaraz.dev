@@ -3,8 +3,8 @@ import type { APIContext, MiddlewareNext } from 'astro';
 import { requireAdmin } from './lib/auth/admin';
 import { recordRequest, takeColdFlag } from './lib/feed/capture';
 
-// The only /admin routes reachable without an admin session: the sign-in page and the endpoint it calls.
-const PUBLIC = new Set(['/admin/login', '/admin/api/session']);
+// The only /admin routes reachable without an admin session: the sign-in page and the OAuth round trip.
+const PUBLIC = new Set(['/admin/login', '/admin/api/signin', '/admin/api/callback']);
 
 const guard = async (context: APIContext, next: MiddlewareNext): Promise<Response> => {
   const path = context.url.pathname.toLowerCase().replace(/\/+$/, '');

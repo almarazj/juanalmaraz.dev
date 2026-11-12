@@ -17,7 +17,18 @@ export default defineConfig({
     // Pages read Firestore on every request, so the emulator needs the sample content first.
     command: 'pnpm seed && pnpm build && node dist/server/entry.mjs',
     url: `http://localhost:${port}`,
-    env: { HOST: 'localhost', PORT: String(port), ADMIN_EMAIL: 'owner@example.com' },
+    // Cognito is never reached: tests mint sessions with this key and intercept the logout redirect.
+    env: {
+      HOST: 'localhost',
+      PORT: String(port),
+      ADMIN_EMAIL: 'owner@example.com',
+      SESSION_KEY: 'test-session-key-not-secret',
+      SITE_URL: `http://localhost:${port}`,
+      COGNITO_DOMAIN: 'https://cognito.example.test',
+      COGNITO_CLIENT_ID: 'e2e-client',
+      COGNITO_USER_POOL_ID: 'us-east-2_e2e',
+      COGNITO_CLIENT_SECRET: 'e2e-client-secret',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
