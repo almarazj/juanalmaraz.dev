@@ -164,7 +164,6 @@ resource "aws_codepipeline" "release" {
       configuration = {
         ProjectName = aws_codebuild_project.release.name
         EnvironmentVariables = jsonencode([
-          { name = "RELEASE_TAG", value = "#{SourceVariables.TagName}", type = "PLAINTEXT" },
           { name = "EXPECTED_VERSION_OVERRIDE", value = "#{variables.EXPECTED_VERSION_OVERRIDE}", type = "PLAINTEXT" },
         ])
       }

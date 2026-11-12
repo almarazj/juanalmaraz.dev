@@ -101,22 +101,29 @@ The status must read `Available`.
 
 ## 8. Prove the tag trigger
 
-The release must only ever start on a pushed `v*` tag.
-Prove it on the real pipeline with a throwaway tag; the run cannot deploy, because the release check rejects a tag that does not match `package.json` (and before Task 14 lands there is no `buildspec.yml`, so the build fails immediately).
+The release must only ever start on a pushed `v*` tag, and the build must see the tag it was started for.
+Do this once Task 14's `buildspec.yml` is on `develop`; the build derives the tag from the full clone (`git tag --points-at HEAD`, filtered to `v*`).
+The run cannot deploy: its release check rejects a tag that does not match `package.json`.
+
+CodePipeline runs once automatically when it is created (that run fails on the then `PENDING` connection), so look for new executions, not for none at all.
 
 ```sh
+aws codepipeline list-pipeline-executions --pipeline-name juanalmaraz-release --max-items 5
 git push origin develop            # a branch push
 aws codepipeline list-pipeline-executions --pipeline-name juanalmaraz-release --max-items 5
-# expect: no execution
+# expect: no new execution after the branch push
 
-git tag v0.0.0-spike && git push origin v0.0.0-spike
+git checkout develop && git tag v0.0.0-spike && git push origin v0.0.0-spike
 aws codepipeline list-pipeline-executions --pipeline-name juanalmaraz-release --max-items 5
-# expect: exactly one new execution, its trigger is the tag; it fails in the Release stage
+# expect: exactly one new execution, triggered by the tag v0.0.0-spike
+aws logs tail /aws/codebuild/juanalmaraz-release --since 30m
+# expect: the build fails at the tag check with
+#   tag v0.0.0-spike does not match package.json <version>
 
 git push --delete origin v0.0.0-spike && git tag -d v0.0.0-spike
 ```
 
-If the tag starts nothing, or the branch push starts an execution, stop and bring the observed behavior back to the owner; never fall back to branch triggers.
+If the tag starts nothing, the branch push starts an execution, or the build log does not name `v0.0.0-spike`, stop and bring the observed behavior back to the owner; never fall back to branch triggers.
 
 ## 9. Seed content before announcing
 
@@ -140,7 +147,14 @@ curl -sI "https://$(terraform -chdir=infra output -raw bucket_name).s3.us-east-2
 - Releases change the function's image and move the `live` alias; Terraform ignores both.
   Changing the function's environment in Terraform only reaches visitors with the next release, because `live` keeps pointing at the published version.
 - `EXPECTED_VERSION_OVERRIDE` defaults to `none` (CodePipeline rejects an empty default), which the build reads as "use the tag's version".
-  Rollback rehearsal: `aws codepipeline start-pipeline-execution --name juanalmaraz-release --variables name=EXPECTED_VERSION_OVERRIDE,value=0.0.0`.
+  Rollback rehearsal: a manual start must name the released tag's commit, or it builds `main` HEAD with no tag.
+
+  ```sh
+  SHA=$(git rev-list -n1 vX.Y.Z)   # the released tag
+  aws codepipeline start-pipeline-execution --name juanalmaraz-release \
+    --source-revisions actionName=Source,revisionType=COMMIT_ID,revisionValue="$SHA" \
+    --variables name=EXPECTED_VERSION_OVERRIDE,value=0.0.0
+  ```
 - The uptime probe runs inside AWS (EventBridge Scheduler every 5 minutes, through CloudFront to `/api/health`).
   It catches function, DynamoDB, CloudFront and deploy failures, but not problems only visible from outside AWS, such as Cloudflare DNS; an external check would be stronger.
 - The probe keeps one execution environment warm, so `cold` in the feed shows up mostly after releases.
