@@ -13,14 +13,14 @@ import type { ZodType } from 'zod';
 process.env.FIRESTORE_EMULATOR_HOST ??= 'localhost:8080';
 process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= '127.0.0.1:9199';
 
-// SAMPLE-ONLY: stand-in images from the old site's checkout.
-const oldSite = new URL('../../almarazj.github.io/assets/img/', import.meta.url).pathname;
+// SAMPLE-ONLY: stand-in images copied from the old site.
+const oldSite = new URL('../tests/fixtures/images/', import.meta.url).pathname;
 const img = (file: string, base: string, alt: string) => readFile(oldSite + file).then((b) => processImage(b, base, alt));
 const [rirGui, pv, render, mpu, profile] = await Promise.all([
-  img('portfolio/ima/rir-gui.png', 'projects/rir-gui', 'Impulse response analysis GUI'),
-  img('portfolio/dsp/pv.png', 'projects/pv', 'Phase vocoder block diagram'),
-  img('portfolio/ce2/render.png', 'projects/render', 'Render of the compressor enclosure'),
-  img('portfolio/ayp1/mpu6050.jpg', 'projects/mpu6050', 'MPU6050 accelerometer on a test rig'),
+  img('rir-gui.png', 'projects/rir-gui', 'Impulse response analysis GUI'),
+  img('pv.png', 'projects/pv', 'Phase vocoder block diagram'),
+  img('render.png', 'projects/render', 'Render of the compressor enclosure'),
+  img('mpu6050.jpg', 'projects/mpu6050', 'MPU6050 accelerometer on a test rig'),
   img('profile-img.png', 'about/profile', 'Juan Almaraz'),
 ]);
 

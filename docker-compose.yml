@@ -1,0 +1,21 @@
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.1.0
+    command: -jar DynamoDBLocal.jar -inMemory -sharedDb
+    ports: ["8000:8000"]
+    healthcheck:
+      # DynamoDB Local answers a bare GET with an error status, so only the connection is checked.
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:8000"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  s3:
+    # SeaweedFS: Apache-2.0, no account or token, supports presigned POST and bucket CORS.
+    image: chrislusf/seaweedfs:4.53
+    command: server -s3 -dir=/data
+    ports: ["9000:8333"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9333/cluster/status"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

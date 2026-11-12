@@ -8,16 +8,21 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "astro dev",
+    "services": "docker compose up -d --wait && tsx scripts/local-aws.ts",
+    "dev": "pnpm services && astro dev",
     "build": "astro build",
-    "test": "firebase emulators:exec --only firestore --project demo-juanalmaraz \"vitest run\"",
+    "test": "pnpm services && firebase emulators:exec --only firestore --project demo-juanalmaraz \"vitest run\"",
     "seed": "tsx scripts/seed.ts",
-    "e2e": "firebase emulators:exec --only auth,firestore,storage --project demo-juanalmaraz \"playwright test\"",
+    "e2e": "pnpm services && firebase emulators:exec --only auth,firestore,storage --project demo-juanalmaraz \"playwright test\"",
     "lint": "astro check && eslint .",
     "check": "pnpm lint && pnpm test && pnpm e2e"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.12",
+    "@aws-sdk/client-dynamodb": "^3.1166.0",
+    "@aws-sdk/client-s3": "^3.1166.0",
+    "@aws-sdk/client-ssm": "^3.1166.0",
+    "@aws-sdk/lib-dynamodb": "^3.1166.0",
     "@shikijs/rehype": "^4.6.0",
     "astro": "^7.4.10",
     "firebase": "^13.2.0",

@@ -19,4 +19,5 @@ jobs:
           java-version: 21
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - run: docker compose up -d --wait
       - run: pnpm check
