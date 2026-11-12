@@ -11,6 +11,45 @@ test('curl pane shows /api/me on load and switches endpoints', async ({ page }) 
   await expect(page.getByRole('button', { name: '/me' })).toHaveAttribute('aria-pressed', 'false');
   await expect(out).toContainText('"daily"');
   expect(JSON.parse((await out.textContent())!)).toHaveProperty('infra');
+  await expect(page.locator('[data-cli-input]')).toHaveValue('curl /api/stack');
+});
+
+test('interactive CLI accepts typed commands and keyboard shortcuts', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('[data-cli-input]');
+  const out = page.locator('[data-api-out]');
+
+  // Type a curl command
+  await input.fill('curl /api/now');
+  await input.press('Enter');
+  await expect(out).toContainText('"building"');
+  await expect(page.getByRole('button', { name: '/now' })).toHaveAttribute('aria-pressed', 'true');
+
+  // Type help command
+  await input.fill('help');
+  await input.press('Enter');
+  await expect(out).toContainText('Available commands:');
+  await expect(out).toContainText('curl /api/me');
+
+  // Test Tab autocomplete
+  await input.fill('curl /api/s');
+  await input.press('Tab');
+  await expect(input).toHaveValue('curl /api/stack');
+
+  // Test ArrowUp history navigation
+  await input.fill('clear');
+  await input.press('Enter');
+  await expect(out).toHaveText('');
+
+  await input.press('ArrowUp');
+  await expect(input).toHaveValue('clear');
+  await input.press('ArrowUp');
+  await expect(input).toHaveValue('help');
+
+  // Test Ctrl+C to cancel input
+  await input.fill('something incomplete');
+  await input.press('Control+c');
+  await expect(input).toHaveValue('');
 });
 
 test('tail pane lists seeded requests with relative times', async ({ page }) => {

@@ -9,7 +9,21 @@ const endpoints = ['/me', '/stack', '/now'];
 <div class="terminal" data-terminal>
   <div class="bar" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="pane">
-    <p class="cmd"><span class="prompt">$</span> curl juanalmaraz.dev/api</p>
+    <form class="cmd-line" data-cli-form action="javascript:void(0);">
+      <label for="cli-input" class="prompt" aria-hidden="true">$</label>
+      <input
+        id="cli-input"
+        type="text"
+        class="cli-input"
+        data-cli-input
+        value="curl /api/me"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="Terminal command"
+      />
+    </form>
     <div class="endpoints" role="group" aria-label="API endpoint">
       {
         endpoints.map((e, i) => (
@@ -65,8 +79,33 @@ const endpoints = ['/me', '/stack', '/now'];
     margin: 0;
     color: var(--g-fg);
   }
+  .cmd-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
   .prompt {
     color: var(--g-acc);
+    user-select: none;
+    font-weight: 500;
+  }
+  .cli-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--g-fg);
+    font: inherit;
+    outline: none;
+    caret-color: var(--g-acc);
+  }
+  .cli-input:focus-visible {
+    outline: none;
+  }
+  .cli-input::selection {
+    background: var(--g-line);
   }
   .endpoints {
     display: flex;
