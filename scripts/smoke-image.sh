@@ -14,9 +14,16 @@ trap cleanup EXIT
 
 docker buildx build --platform "$PLATFORM" --load -t "$IMAGE" .
 
-size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
+# `inspect .Size` also counts compressed blobs under the containerd store, so measure the unpacked filesystem.
+size=$(( $(docker run --rm --user root --platform "$PLATFORM" --entrypoint du "$IMAGE" -sxk / | cut -f1) * 1024 ))
 echo "image size: $((size / 1024 / 1024)) MB"
 [ "$size" -lt "$MAX_BYTES" ] || { echo "FAIL: image is over 500 MB" >&2; exit 1; }
+
+# Host networking shares the host's ports, so a foreign listener would answer instead of the container.
+if (exec 3<>"/dev/tcp/localhost/$PORT") 2>/dev/null; then
+  echo "FAIL: port $PORT is already in use (set SMOKE_PORT)" >&2
+  exit 1
+fi
 
 pnpm seed >/dev/null
 
@@ -29,10 +36,13 @@ CID=$(docker run -d --platform "$PLATFORM" --network host \
   -e SESSION_KEY=smoke-session-key \
   "$IMAGE")
 
+ready=0
 for _ in $(seq 60); do
-  curl -fs -o /dev/null "http://localhost:$PORT/internal/ready" && break
+  [ "$(docker inspect -f '{{.State.Running}}' "$CID")" = true ] || break
+  if [ "$(curl -fs "http://localhost:$PORT/internal/ready" || true)" = ok ]; then ready=1; break; fi
   sleep 1
 done
+[ "$ready" = 1 ] || { echo "FAIL: /internal/ready never returned ok" >&2; docker logs "$CID" >&2; exit 1; }
 
 fail=0
 for path in /internal/ready / /api/me /api/health; do
