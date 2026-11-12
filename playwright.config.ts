@@ -9,6 +9,7 @@ const port = Number(process.env.E2E_PORT ?? 4321);
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  testIgnore: 'deployed.spec.ts', // needs a live site, see playwright.deployed.config.ts
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',

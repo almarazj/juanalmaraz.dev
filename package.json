@@ -15,7 +15,8 @@
     "seed": "tsx scripts/seed.ts",
     "e2e": "pnpm services && playwright test",
     "lint": "astro check && eslint .",
-    "check": "pnpm lint && pnpm test && pnpm e2e"
+    "e2e:deployed": "playwright test -c playwright.deployed.config.ts",
+    "check":"pnpm lint && pnpm test && pnpm e2e"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.12",
