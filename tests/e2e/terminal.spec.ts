@@ -1,93 +1,100 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
-test('curl pane shows /api/me on load and switches endpoints', async ({ page }) => {
+const terminal = (page: Page) => page.locator('[data-terminal]');
+const out = (page: Page) => page.locator('[data-out]');
+const input = (page: Page) => page.locator('[data-in]');
+
+async function focusPrompt(page: Page) {
+  await terminal(page).locator('.line').click();
+  await expect(input(page)).toBeFocused();
+}
+
+async function runCommand(page: Page, line: string) {
+  await focusPrompt(page);
+  await page.keyboard.type(line);
+  await page.keyboard.press('Enter');
+}
+
+test('the hero logs in on an Ubuntu tty and runs neofetch', async ({ page }) => {
   await page.goto('/');
-  const out = page.locator('[data-api-out]');
-  await expect(out).toContainText('"name": "Juan Almaraz"');
-  expect(JSON.parse((await out.textContent())!)).toMatchObject({ name: 'Juan Almaraz' });
-
-  await page.getByRole('button', { name: '/stack' }).click();
-  await expect(page.getByRole('button', { name: '/stack' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: '/me' })).toHaveAttribute('aria-pressed', 'false');
-  await expect(out).toContainText('"daily"');
-  expect(JSON.parse((await out.textContent())!)).toHaveProperty('infra');
-  await expect(page.locator('[data-cli-input]')).toHaveValue('curl /api/stack');
+  await expect(page.getByRole('heading', { level: 1, name: 'Juan Almaraz' })).toBeAttached();
+  await expect(out(page)).toContainText('ubuntu login: juan');
+  await expect(out(page)).toContainText('Role: Backend Engineer');
+  await expect(out(page)).toContainText(/Uptime: \d+\+ years in software engineering/);
+  await expect(out(page)).toContainText(/Based: Buenos Aires, AR · \d{2}:\d{2} \(GMT-3\)/);
+  await expect(out(page)).toContainText('Languages: Spanish (native), English (C1)');
+  await expect(out(page)).toContainText(/Packages: \d+ projects, \d+ posts/);
+  await expect(terminal(page).getByRole('link', { name: 'resume' })).toHaveAttribute('href', '/resume.pdf');
+  await expect(terminal(page).locator('.line')).toContainText('juan@ubuntu:~$');
 });
 
-test('interactive CLI accepts typed commands and keyboard shortcuts', async ({ page }) => {
+test('curl calls the real API and help lists only commands', async ({ page }) => {
   await page.goto('/');
-  const input = page.locator('[data-cli-input]');
-  const out = page.locator('[data-api-out]');
+  await runCommand(page, 'curl -i /api/me');
+  const response = out(page).locator('.blk').last();
+  await expect(response).toContainText(/^HTTP\/[\d.]+ 200/);
+  await expect(response).toContainText('content-type: application/json');
+  await expect(response).toContainText('"name": "Juan Almaraz"');
 
-  // Type a curl command
-  await input.fill('curl /api/now');
-  await input.press('Enter');
-  await expect(out).toContainText('"building"');
-  await expect(page.getByRole('button', { name: '/now' })).toHaveAttribute('aria-pressed', 'true');
-
-  // Type help command
-  await input.fill('help');
-  await input.press('Enter');
-  await expect(out).toContainText('Available commands:');
-  await expect(out).toContainText('curl /api/me');
-
-  // Test Tab autocomplete
-  await input.fill('curl /api/s');
-  await input.press('Tab');
-  await expect(input).toHaveValue('curl /api/stack');
-
-  // Test ArrowUp history navigation
-  await input.fill('clear');
-  await input.press('Enter');
-  await expect(out).toHaveText('');
-
-  await input.press('ArrowUp');
-  await expect(input).toHaveValue('clear');
-  await input.press('ArrowUp');
-  await expect(input).toHaveValue('help');
-
-  // Test Ctrl+C to cancel input
-  await input.fill('something incomplete');
-  await input.press('Control+c');
-  await expect(input).toHaveValue('');
+  await runCommand(page, 'help');
+  const help = out(page).locator('.blk').last();
+  await expect(help).toContainText('Commands');
+  await expect(help).toContainText('tail -f access.log');
+  await expect(help).not.toContainText(/keys|pipes/i);
 });
 
-test('tail pane lists seeded requests with relative times', async ({ page }) => {
+test('line editing: completion, suggestions, history and shortcuts', async ({ page }) => {
   await page.goto('/');
-  const rows = page.locator('[data-feed] li');
-  await expect(rows.first()).toBeVisible();
-  await expect(rows).toHaveCount(8);
-  await expect(rows.first()).toContainText(/(GET|POST|HEAD)\s+\/\S*\s+\d{3}\s+(cold|warm)\s+\d+ ms\s+\d+ (s|min|h|d) ago/);
+  await focusPrompt(page);
+
+  await page.keyboard.type('cd pro');
+  await page.keyboard.press('Tab');
+  await expect(input(page)).toHaveValue('cd projects/');
+  await page.keyboard.press('Enter');
+  await expect(terminal(page).locator('.line')).toContainText('juan@ubuntu:~/projects$');
+
+  await page.keyboard.type('ls');
+  await page.keyboard.press('Enter');
+  await expect(out(page).locator('.blk').last()).toContainText('juanalmaraz-dev.md');
+
+  await page.keyboard.press('ArrowUp');
+  await expect(input(page)).toHaveValue('ls');
+  await page.keyboard.press('ArrowUp');
+  await expect(input(page)).toHaveValue('cd projects/');
+
+  await page.keyboard.press('Control+c');
+  await expect(input(page)).toHaveValue('');
+  await expect(out(page).locator('.echo').last()).toContainText('cd projects/^C');
+
+  await page.keyboard.type('neo');
+  await expect(terminal(page).locator('.line')).toContainText('neofetch');
+  await page.keyboard.press('ArrowRight');
+  await expect(input(page)).toHaveValue('neofetch');
+
+  await page.keyboard.press('Control+l');
+  await expect(out(page).locator('> *')).toHaveCount(0);
 });
 
-test('tail pane renders cold and warm rows', async ({ page }) => {
-  const t = Date.now();
-  const entries = [
-    { m: 'GET', p: '/', s: 200, c: 'cold', ms: 480, t },
-    { m: 'GET', p: '/writing', s: 200, c: 'warm', ms: 12, t: t - 1000 },
-  ];
-  await page.route('**/api/requests', (route) => route.fulfill({ json: { entries, updatedAt: t, stats: {} } }));
+test('Tab on an empty prompt moves focus on, so the terminal never traps the keyboard', async ({ page }) => {
   await page.goto('/');
-  const rows = page.locator('[data-feed] li');
-  await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText(/\scold\s/);
-  await expect(rows.nth(0).locator('.c')).toHaveClass(/hit/);
-  await expect(rows.nth(1)).toContainText(/\swarm\s/);
+  await focusPrompt(page);
+  await page.keyboard.press('Tab');
+  await expect(input(page)).not.toBeFocused();
 });
 
-test('a visited page is recorded by the middleware and shows up in the tail', async ({ page, request }) => {
-  // /api/experience is allowlisted but not in the seed, so a row for it can only come from the middleware.
+test('tail -f follows the live log, including requests made meanwhile, until Ctrl+C', async ({ page, request }) => {
+  await page.goto('/');
+  await runCommand(page, 'tail -f access.log');
+  const log = out(page).locator('.blk').last();
+  await expect(log).toContainText(/\d{2}:\d{2}:\d{2}\s+(GET|HEAD|POST)\s+\S/);
+
+  // /api/experience is allowlisted but not in the seed, so this line can only come from the middleware.
   expect((await request.get('/api/experience')).ok()).toBe(true);
-  const feed = await (await request.get('/api/requests')).json();
-  expect(feed.entries).toContainEqual(expect.objectContaining({ m: 'GET', p: '/api/experience', s: 200, c: expect.stringMatching(/^(cold|warm)$/) }));
+  await expect(out(page)).toContainText(/\/api\/experience\s+200/, { timeout: 15_000 });
 
-  // Parallel workers can push the row past the pane's 8 rows before the page loads, so visit again until it is fresh.
-  const row = page.locator('[data-feed] li').filter({ hasText: /\/api\/experience\s+200/ }).first();
-  await expect(async () => {
-    expect((await request.get('/api/experience')).ok()).toBe(true);
-    await page.goto('/');
-    await expect(row).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await page.keyboard.press('Control+c');
+  await expect(out(page).locator('.blk').last()).toHaveText('^C');
+  await expect(terminal(page).locator('.line')).toContainText('juan@ubuntu:~$');
 });
 
 test('an unknown path is recorded as a 404 unknown-path entry', async ({ request }) => {
@@ -96,10 +103,11 @@ test('an unknown path is recorded as a 404 unknown-path entry', async ({ request
   expect(feed.entries).toContainEqual(expect.objectContaining({ p: '404 · unknown path', s: 404 }));
 });
 
-test('does not poll /api/requests while the terminal is out of view', async ({ page }) => {
+test('tail -f does not poll /api/requests while the terminal is out of view', async ({ page }) => {
   await page.clock.install();
   await page.goto('/');
-  await expect(page.locator('[data-feed] li').first()).toBeVisible();
+  await runCommand(page, 'tail -f access.log');
+  await expect(out(page).locator('.blk').last()).toContainText(/\d{2}:\d{2}:\d{2}/);
 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   // A fresh observer reports in the same rendering step as the terminal's own, so this waits for it.
@@ -122,8 +130,26 @@ test('does not poll /api/requests while the terminal is out of view', async ({ p
   expect(polls).toHaveLength(0);
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect.poll(async () => {
-    await page.clock.runFor(5_000);
-    return polls.length;
-  }).toBeGreaterThan(0);
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(5_000);
+      return polls.length;
+    })
+    .toBeGreaterThan(0);
+});
+
+test('the JA spins, and holds still under reduced motion', async ({ page }) => {
+  const art = page.locator('[data-terminal] .nf-art').last();
+
+  await page.clock.install();
+  await page.goto('/');
+  const rest = await art.textContent();
+  await page.clock.runFor(1_000);
+  await expect(art).not.toHaveText(rest!);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  const still = await art.textContent();
+  await page.clock.runFor(1_000);
+  await expect(art).toHaveText(still!);
 });

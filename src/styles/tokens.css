@@ -25,6 +25,14 @@
   --g-ok: #7fe0a8;
   --g-info: #a9c1ff;
 
+  --tty-bg: #121316;
+  --tty-fg: #d9dce1;
+  --tty-dim: #737a83;
+  --tty-sel: #2c2f35;
+  --tty-err: #ff9d9d;
+  --tty-mag: #e2acff;
+  --tty-cyan: #8adfe6;
+
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;

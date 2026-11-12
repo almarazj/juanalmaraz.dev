@@ -7,6 +7,8 @@ import Projects from '../components/home/Projects.astro';
 import Education from '../components/home/Education.astro';
 import Writing from '../components/home/Writing.astro';
 import About from '../components/home/About.astro';
+import { terminalData } from '../components/home/terminal/data';
+import { buildInfo } from '../lib/build-info';
 import { getSingleton, listPublished } from '../lib/content/repo';
 import { readingMinutes, renderMarkdown } from '../lib/markdown/render';
 
@@ -23,6 +25,7 @@ const backend = projects.filter((p) => p.group === 'backend');
 const engineering = projects.filter((p) => p.group === 'engineering');
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
+const terminal = terminalData({ site, about, experience, projects, education: degrees, certificates, posts: postDocs }, buildInfo);
 
 const sections = [
   {
@@ -59,7 +62,7 @@ const sections = [
 
 <Base title="Juan Almaraz · Backend engineer" description={site.lede}>
   <main class="page">
-    <Hero site={site} />
+    <Hero terminal={terminal} />
     <div class="with-rail">
       <SideIndex sections={sections} />
       <div class="sections">
