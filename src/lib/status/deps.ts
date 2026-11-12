@@ -1,33 +1,29 @@
-import { applicationDefault } from 'firebase-admin/app';
-import { bucket, db } from '../firebase';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { HeadBucketCommand } from '@aws-sdk/client-s3';
+import { config, ddb, s3 } from '../aws';
 import { getFeed } from '../feed/store';
 import type { Deps } from './check';
+import { uptimeRatio } from './uptime';
 
-const WINDOW_S = 30 * 86_400;
+const WINDOW_MS = 30 * 86_400_000;
+const dayOf = (t: number) => new Date(t).toISOString().slice(0, 10);
 
-// Returns null when no uptime check is configured (local, previews).
-async function uptimeRatio(env: Record<string, string | undefined>): Promise<number | null> {
-  const id = env.UPTIME_CHECK_ID;
-  const project = env.GOOGLE_CLOUD_PROJECT;
-  if (!id || !project) return null;
-  const { access_token } = await applicationDefault().getAccessToken();
-  const now = Date.now();
-  const q = new URLSearchParams({
-    filter: `metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND metric.labels.check_id="${id}"`,
-    'interval.startTime': new Date(now - WINDOW_S * 1000).toISOString(),
-    'interval.endTime': new Date(now).toISOString(),
-    'aggregation.alignmentPeriod': `${WINDOW_S}s`,
-    'aggregation.perSeriesAligner': 'ALIGN_FRACTION_TRUE',
-    'aggregation.crossSeriesReducer': 'REDUCE_MEAN',
-  });
-  const res = await fetch(`https://monitoring.googleapis.com/v3/projects/${project}/timeSeries?${q}`, {
-    headers: { Authorization: `Bearer ${access_token}` },
-    signal: AbortSignal.timeout(3000),
-  });
-  if (!res.ok) return null;
-  const body = (await res.json()) as { timeSeries?: { points?: { value?: { doubleValue?: number } }[] }[] };
-  const v = body.timeSeries?.[0]?.points?.[0]?.value?.doubleValue;
-  return typeof v === 'number' ? v : null;
+export async function pingDb(): Promise<void> {
+  await ddb().send(new GetCommand({ TableName: config().table, Key: { pk: 'site', sk: 'main' } }));
+}
+
+async function uptime(now: number): Promise<number | null> {
+  const TableName = config().table;
+  const [days, first] = await Promise.all([
+    ddb().send(new QueryCommand({
+      TableName,
+      KeyConditionExpression: 'pk = :pk AND sk BETWEEN :from AND :to',
+      ExpressionAttributeValues: { ':pk': 'uptime', ':from': dayOf(now - WINDOW_MS), ':to': dayOf(now) },
+    })),
+    ddb().send(new GetCommand({ TableName, Key: { pk: 'uptime', sk: 'first' } })),
+  ]);
+  const items = (days.Items ?? []).map((i) => ({ day: i.sk as string, ok: Number(i.ok ?? 0) }));
+  return uptimeRatio(items, typeof first.Item?.t === 'number' ? first.Item.t : null, now);
 }
 
 export const liveDeps = (): Deps => ({
@@ -36,13 +32,10 @@ export const liveDeps = (): Deps => ({
     const f = await getFeed();
     return { entries: f.entries.length, updatedAt: f.updatedAt, stats: f.stats };
   },
-  pingDb: async () => {
-    await db().doc('site/main').get();
-  },
-  // The Storage emulator reports exists() false for its implicit bucket, so list instead; it throws when the bucket is missing.
+  pingDb,
   bucketExists: async () => {
-    await bucket().getFiles({ maxResults: 1 });
+    await s3().send(new HeadBucketCommand({ Bucket: config().bucket }));
     return true;
   },
-  uptime: () => uptimeRatio(process.env),
+  uptime: () => uptime(Date.now()),
 });

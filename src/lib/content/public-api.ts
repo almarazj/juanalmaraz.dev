@@ -16,7 +16,7 @@ export const experience = (roles: Doc<'experience'>[]) =>
   roles.map(({ role, org, place, start, end, summary, stack }) => ({ role, org, place, start, end, summary, stack }));
 
 // shortcut: infra is a fixed name list, move it to the experience schema if tagging by hand gets tedious.
-const infraNames = new Set(['GCP', 'AWS', 'Cloud Run', 'Cloud Tasks', 'Pub/Sub', 'Firestore', 'Postgres', 'Redis', 'Terraform', 'Docker', 'Kubernetes']);
+const infraNames = new Set(['GCP', 'AWS', 'Lambda', 'SQS', 'SNS', 'DynamoDB', 'CloudFront', 'S3', 'Postgres', 'Redis', 'Terraform', 'Docker', 'Kubernetes']);
 
 export function stack(roles: Doc<'experience'>[]) {
   const current = [...new Set(roles.filter((r) => r.end === null).flatMap((r) => r.stack))];

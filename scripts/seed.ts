@@ -1,4 +1,4 @@
-// Seeds the Firestore emulator. SAMPLE-ONLY values are marked; replace real content via /admin (Task 15).
+// Seeds local DynamoDB and S3. SAMPLE-ONLY values are marked; replace real content via /admin.
 import { putEntry } from '../src/lib/feed/store';
 import { saveWithRevision, type Collection } from '../src/lib/content/repo';
 import {
@@ -11,7 +11,6 @@ import { processImage } from '../src/lib/images/process';
 import { readFile } from 'node:fs/promises';
 import type { ZodType } from 'zod';
 
-process.env.FIRESTORE_EMULATOR_HOST ??= 'localhost:8080';
 process.env.AWS_ENDPOINT_URL_DYNAMODB ??= 'http://localhost:8000';
 process.env.AWS_ENDPOINT_URL_S3 ??= 'http://localhost:9000';
 
@@ -61,9 +60,9 @@ const project = (title: string, group: 'backend' | 'engineering', year: number, 
   title, group, year, summary: `${title} (sample summary).`, stack: [], links: [], confidential: false, order, status: 'published', ...extra,
 });
 const projects = [
-  ['juanalmaraz-dev', project('juanalmaraz.dev', 'backend', 2026, 1, { stack: ['Astro', 'Firestore', 'Cloud Run'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }] })],
-  ['document-ingestion', project('Document ingestion pipeline', 'backend', 2025, 2, { confidential: true, stack: ['Node.js', 'Cloud Tasks', 'Postgres'] })],
-  ['webhook-relay', project('Webhook relay', 'backend', 2025, 3, { stack: ['Node.js', 'Pub/Sub'] })],
+  ['juanalmaraz-dev', project('juanalmaraz.dev', 'backend', 2026, 1, { stack: ['Astro', 'DynamoDB', 'Lambda'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }] })],
+  ['document-ingestion', project('Document ingestion pipeline', 'backend', 2025, 2, { confidential: true, stack: ['Node.js', 'SQS', 'Postgres'] })],
+  ['webhook-relay', project('Webhook relay', 'backend', 2025, 3, { stack: ['Node.js', 'SNS'] })],
   ['room-impulse-response', project('Room impulse response tool', 'engineering', 2023, 4, { stack: ['Python', 'Acoustics'], image: rirGui })],
   ['phase-vocoder', project('Phase vocoder time-stretching', 'engineering', 2022, 5, { stack: ['Python', 'DSP'], image: pv })],
   ['compressor-hardware', project('Compressor hardware design', 'engineering', 2022, 6, { stack: ['Electronics'], image: render })],
@@ -144,7 +143,7 @@ ${filler(10)}
 `;
 const posts = [
   ['terraform-one-person', { title: 'Terraform for a one-person project', summary: 'Why a solo site still gets infrastructure as code.', bodyMd: `## Why bother\n\n${filler(8)}\n`, tags: ['terraform'], status: 'published', publishedAt: now - 86_400_000 * 7, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 1 } }],
-  ['live-request-log', { title: 'A live request log on the GCP free tier', summary: 'How the hero terminal tails real traffic without leaving the free tier.', bodyMd: post2Body, tags: ['gcp', 'firestore'], status: 'published', publishedAt: now, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 2 } }],
+  ['live-request-log', { title: 'A live request log on the GCP free tier', summary: 'How the hero terminal tails real traffic without leaving the free tier.', bodyMd: post2Body, tags: ['aws', 'dynamodb'], status: 'published', publishedAt: now, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 2 } }],
   ['draft-post', { title: 'Draft post', summary: 'Work in progress.', bodyMd: 'Sample draft.', tags: [], status: 'draft', publishedAt: now, updatedAt: now }],
 ] as const;
 

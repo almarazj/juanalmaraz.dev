@@ -14,7 +14,7 @@ test('hover shows the $ status tooltip, it follows the pointer and hides 40 px a
   const tip = page.getByRole('tooltip');
   await expect(tip).toBeVisible();
   await expect(tip).toContainText('$ status');
-  await expect(tip).toContainText('Database (Firestore)');
+  await expect(tip).toContainText('Database (DynamoDB)');
   const before = (await tip.boundingBox())!;
   await page.mouse.move(cx + 10, cy + 10);
   await expect.poll(async () => (await tip.boundingBox())!.x).not.toBe(before.x);
@@ -42,13 +42,13 @@ test('the dot meets the 24px target', async ({ page }) => {
   expect(box.height).toBeGreaterThanOrEqual(24);
 });
 
-test('a failing status endpoint turns the dot red', async ({ page }) => {
-  await page.route('**/api/status', (r) => r.fulfill({ status: 500, body: 'x' }));
+test('an unreachable status endpoint turns the dot red and lists the app as unreachable', async ({ page }) => {
+  await page.route('**/api/status', (r) => r.abort());
   await page.goto('/');
   await expect(dot(page)).toHaveAttribute('aria-label', 'Site status: major outage');
   await page.getByRole('link', { name: 'RSS' }).focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('tooltip')).toContainText('App (Cloud Run)');
+  await expect(page.getByRole('tooltip')).toContainText('App (Lambda)');
 });
 
 test('Enter reopens the tooltip after Escape', async ({ page }) => {
@@ -67,5 +67,11 @@ test('Enter reopens the tooltip after Escape', async ({ page }) => {
 test('the tooltip has description text before it is ever shown', async ({ page }) => {
   await page.goto('/');
   await expect(dot(page)).toHaveAttribute('aria-label', /operational|degraded/);
-  await expect(page.locator('#status-tip')).toContainText('Database (Firestore)');
+  await expect(page.locator('#status-tip')).toContainText('Database (DynamoDB)');
+});
+
+test('the health endpoint answers 200 and is never cached', async ({ request }) => {
+  const res = await request.get('/api/health');
+  expect(res.status()).toBe(200);
+  expect(res.headers()['cache-control']).toBe('no-store');
 });

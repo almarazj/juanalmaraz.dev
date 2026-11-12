@@ -160,14 +160,14 @@ import { buildInfo } from '../../lib/build-info';
     if (mode) place();
   }
 
-  // The CDN can serve this page while Cloud Run is down, so a failed fetch is itself the outage signal.
+  // The CDN can serve this page while the function is down, so a failed fetch is itself the outage signal.
   const outage = (): Status => ({
     overall: 'down',
     checkedAt: Date.now(),
     uptime30d: null,
     services: [
-      { name: 'Website (CDN)', state: 'ok', detail: 'serving' },
-      { name: 'App (Cloud Run)', state: 'down', detail: 'unreachable' },
+      { name: 'Website (CloudFront)', state: 'ok', detail: 'serving' },
+      { name: 'App (Lambda)', state: 'down', detail: 'unreachable' },
       { name: 'Public API', state: 'down', detail: 'unreachable' },
     ],
   });

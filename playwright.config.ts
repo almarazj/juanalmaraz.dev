@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: { baseURL: `http://localhost:${port}`, trace: 'on-first-retry' },
   webServer: {
-    // Pages read Firestore on every request, so the emulator needs the sample content first.
+    // Pages read DynamoDB on every request, so the local table needs the sample content first.
     command: 'pnpm seed && pnpm build && node dist/server/entry.mjs',
     url: `http://localhost:${port}`,
     // Cognito is never reached: tests mint sessions with this key and intercept the logout redirect.
