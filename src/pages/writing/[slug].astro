@@ -1,0 +1,19 @@
+---
+import Post from '../../layouts/Post.astro';
+import { getPublished, listPublished } from '../../lib/content/repo';
+import { renderMarkdown } from '../../lib/markdown/render';
+
+const post = await getPublished('posts', Astro.params.slug!);
+if (!post) return Astro.rewrite('/404');
+
+const { html, headings, minutes } = await renderMarkdown(post.bodyMd);
+const siblings = post.series ? (await listPublished('posts')).filter((p) => p.series?.id === post.series!.id) : [];
+const near = (n: number) => {
+  const p = siblings.find((s) => s.series!.part === n);
+  return p && { id: p.id, title: p.title, part: n };
+};
+const prev = post.series && near(post.series.part - 1);
+const next = post.series && near(post.series.part + 1);
+---
+
+<Post post={post} html={html} headings={headings} minutes={minutes} prev={prev} next={next} />

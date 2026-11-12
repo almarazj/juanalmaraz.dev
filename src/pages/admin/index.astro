@@ -1,0 +1,146 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import ImageUpload from '../../components/admin/ImageUpload.astro';
+import { getRaw, listAll } from '../../lib/content/repo';
+import { editableSchemas, SINGLETONS, type EditableCollection } from '../../lib/content/editable';
+
+const lists = (Object.keys(editableSchemas) as EditableCollection[]).filter((c) => !SINGLETONS.includes(c)) as Exclude<
+  EditableCollection,
+  'about' | 'site'
+>[];
+const label = (d: Record<string, unknown>, id: string) => String(d.title ?? d.name ?? d.role ?? id);
+const rows = await Promise.all(
+  lists.map(async (c) => ({
+    collection: c,
+    docs: (await listAll(c)).sort((a, b) => label(a.data, a.id).localeCompare(label(b.data, b.id))),
+  })),
+);
+const site = await getRaw('site', 'main');
+---
+
+<Admin title="Content">
+  <h1>Content</h1>
+  <div class="grid">
+    {
+      rows.map(({ collection, docs }) => (
+        <section aria-labelledby={`h-${collection}`}>
+          <header>
+            <h2 id={`h-${collection}`}>{collection}</h2>
+            <a class="pill" href={`/admin/${collection}/new`}>New</a>
+          </header>
+          <ul>
+            {docs.map(({ id, data }) => (
+              <li>
+                <a href={`/admin/${collection}/${id}`}>{label(data, id)}</a>
+                {typeof data.status === 'string' && <span class:list={['status', data.status]}>{data.status}</span>}
+              </li>
+            ))}
+            {docs.length === 0 && <li class="admin-note">Nothing yet.</li>}
+          </ul>
+        </section>
+      ))
+    }
+    <section aria-labelledby="h-pages">
+      <header><h2 id="h-pages">pages</h2></header>
+      <ul>
+        {SINGLETONS.map((c) => <li><a href={`/admin/${c}/main`}>{c}</a></li>)}
+      </ul>
+    </section>
+  </div>
+
+  <div class="grid uploads">
+    <section aria-labelledby="h-resume">
+      <header><h2 id="h-resume">resume</h2></header>
+      <form class="resume" data-resume>
+        <p class="admin-note">
+          Serving <a href="/resume.pdf" target="_blank" rel="noopener">/resume.pdf</a> from <code>{String(site?.resumePath || 'nothing yet')}</code>.
+        </p>
+        <label>PDF <input class="admin-input" type="file" name="file" accept="application/pdf" required /></label>
+        <button class="pill primary" type="submit">Upload resume</button>
+        <p class="admin-note" role="status" data-resume-status></p>
+      </form>
+    </section>
+    <section aria-labelledby="h-images">
+      <header><h2 id="h-images">images</h2></header>
+      <ImageUpload />
+    </section>
+  </div>
+</Admin>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-resume]')!;
+  const status = form.querySelector<HTMLElement>('[data-resume-status]')!;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = new FormData(form);
+    body.set('kind', 'resume');
+    status.textContent = 'Uploading…';
+    const res = await fetch('/admin/api/upload', { method: 'POST', body });
+    status.textContent = res.ok ? 'Resume updated.' : `Upload failed: ${(await res.json().catch(() => ({}))).error ?? res.status}`;
+    if (res.ok) form.reset();
+  });
+</script>
+
+<style>
+  h1 {
+    margin: 0 0 24px;
+    font: 600 28px/1.2 var(--font-sans);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+  .uploads {
+    margin-top: 40px;
+  }
+  section {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+  }
+  section > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  h2 {
+    margin: 0;
+    font: 600 13px/1.4 var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 15px;
+  }
+  .status {
+    font: 500 12px/1.5 var(--font-mono);
+    color: var(--faint);
+  }
+  .status.published {
+    color: var(--ok);
+  }
+  .resume {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+  .resume label {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    font-size: 14px;
+  }
+</style>

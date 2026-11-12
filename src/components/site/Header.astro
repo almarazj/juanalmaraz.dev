@@ -1,0 +1,126 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+---
+
+<header class="site-header" data-header>
+  <div class="who" data-when-stuck>
+    <a class="name" href="#top">Juan Almaraz</a>
+    <span class="section" data-header-section></span>
+  </div>
+  <button type="button" class="search" data-when-stuck data-palette-open aria-label="Search or jump to">
+    <span>Search or jump to...</span><kbd>⌘K</kbd>
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+  </button>
+  <div class="right"><ThemeToggle /></div>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    padding-inline: var(--gutter-l) var(--gutter-r);
+    background: var(--bg);
+    border-bottom: 1px solid transparent;
+    transition: border-color 150ms;
+  }
+  .site-header[data-stuck] {
+    border-bottom-color: var(--line);
+  }
+  .who {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+  }
+  .name {
+    flex: none;
+    font-weight: 600;
+    color: var(--fg);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .section {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font: 500 12.5px/1 var(--font-mono);
+    white-space: nowrap;
+  }
+  .search {
+    display: flex;
+    min-width: 0;
+    justify-content: space-between;
+    gap: 24px;
+    width: min(360px, 40vw);
+    padding: 8px 12px;
+    font: 400 13px/1 var(--font-mono);
+    color: var(--muted);
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+  .search kbd {
+    font: inherit;
+    color: var(--faint);
+  }
+  .icon {
+    display: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+  .right {
+    justify-self: end;
+  }
+  [data-when-stuck] {
+    visibility: hidden;
+  }
+  [data-stuck] [data-when-stuck] {
+    visibility: visible;
+  }
+  @media (max-width: 680px) {
+    .site-header {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+    }
+    .site-header .search {
+      visibility: visible; /* no hover or stuck state on phones: the sheet must be reachable at scroll 0 */
+      width: auto;
+      padding: 7px 9px;
+    }
+    .search span,
+    .search kbd {
+      display: none;
+    }
+    .search .icon {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  import { trackSections } from './scrollspy';
+
+  const header = document.querySelector<HTMLElement>('[data-header]')!;
+  const label = header.querySelector<HTMLElement>('[data-header-section]')!;
+  const hero = document.getElementById('hero');
+  const update = () => {
+    const stuck = !hero || hero.getBoundingClientRect().bottom < 120; // same offset as the section spy
+    header.toggleAttribute('data-stuck', stuck);
+  };
+  addEventListener('scroll', update, { passive: true });
+  update();
+  trackSections((id) => {
+    label.textContent = id ? `/ ${id}` : '';
+    label.style.color = id ? `var(--c-${id})` : '';
+  });
+</script>

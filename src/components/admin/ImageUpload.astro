@@ -1,0 +1,74 @@
+---
+// Uploads one image into WebP variants and hands back the ImageRef to paste into a field or post.
+---
+
+<form class="image-upload" data-image-upload>
+  <label>Image <input class="admin-input" type="file" name="file" accept="image/*" required /></label>
+  <label>Alt text <input class="admin-input" type="text" name="alt" required /></label>
+  <button class="pill primary" type="submit">Upload image</button>
+  <p class="admin-error" role="alert" data-upload-error></p>
+  <div class="result" data-upload-result hidden>
+    <img alt="" data-upload-preview />
+    <label>ImageRef <textarea class="admin-input" rows="5" readonly data-upload-ref></textarea></label>
+    <label>Markdown <input class="admin-input" type="text" readonly data-upload-md /></label>
+  </div>
+</form>
+
+<script>
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-image-upload]')) {
+    const $ = <T extends HTMLElement>(s: string) => form.querySelector<T>(s)!;
+    const error = $('[data-upload-error]');
+    const result = $('[data-upload-result]');
+    const button = $<HTMLButtonElement>('button');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.textContent = '';
+      result.hidden = true;
+      button.disabled = true;
+      const body = new FormData(form);
+      body.set('kind', 'image');
+      try {
+        const res = await fetch('/admin/api/upload', { method: 'POST', body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+        $<HTMLImageElement>('[data-upload-preview]').src = data.preview;
+        $<HTMLTextAreaElement>('[data-upload-ref]').value = JSON.stringify(data.ref, null, 2);
+        $<HTMLInputElement>('[data-upload-md]').value = `![${data.ref.alt}](${data.preview})`;
+        result.hidden = false;
+      } catch (err) {
+        error.textContent = `Upload failed: ${(err as Error).message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+    for (const field of form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[readonly]')) {
+      field.addEventListener('focus', () => field.select());
+    }
+  }
+</script>
+
+<style>
+  .image-upload,
+  .result {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+  }
+  label {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    font-size: 14px;
+  }
+  .result {
+    width: 100%;
+  }
+  .result[hidden] {
+    display: none;
+  }
+  img {
+    max-width: 100%;
+    max-height: 160px;
+    border-radius: var(--radius-control);
+  }
+</style>

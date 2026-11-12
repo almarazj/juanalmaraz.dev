@@ -1,0 +1,256 @@
+---
+import { buildInfo } from '../../lib/build-info';
+---
+
+<span class="status" data-status data-version={buildInfo.version}>
+  <button type="button" class="dot" data-state="unknown" aria-label="Site status: checking" aria-describedby="status-tip"></button>
+  <span id="status-tip" class="tip" role="tooltip" hidden></span>
+</span>
+
+<style>
+  .status {
+    display: inline-flex;
+  }
+  .dot {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .dot::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--faint);
+  }
+  .dot[data-state='ok']::before {
+    background: var(--ok);
+  }
+  .dot[data-state='warn']::before {
+    background: var(--warn);
+  }
+  .dot[data-state='down']::before {
+    background: var(--down);
+  }
+  .tip {
+    position: fixed;
+    display: block;
+    z-index: 50;
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    padding: 10px 12px;
+    background: var(--g-bg);
+    color: var(--g-fg);
+    border: 1px solid var(--g-line);
+    border-radius: var(--radius-control);
+    font: 400 12px/1.6 var(--font-mono);
+    pointer-events: none;
+  }
+  .tip[hidden] {
+    display: none;
+  }
+  .tip :global(.hd),
+  .tip :global(.sub),
+  .tip :global(.ft) {
+    display: block;
+  }
+  .tip :global(.sub) {
+    margin-bottom: 6px;
+    color: var(--g-muted);
+  }
+  .tip :global(.hd) {
+    color: var(--g-acc);
+  }
+  .tip :global(.row) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tip :global(.row i) {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .tip :global(.row span) {
+    white-space: nowrap;
+  }
+  .tip :global(.row em) {
+    margin-left: auto;
+    padding-left: 16px;
+    white-space: nowrap;
+    font-style: normal;
+    color: var(--g-muted);
+  }
+  .tip :global(.ft) {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--g-line);
+    color: var(--g-muted);
+  }
+  .tip :global([data-s='ok']) {
+    background: var(--g-ok);
+  }
+  .tip :global([data-s='warn']) {
+    background: var(--g-acc);
+  }
+  .tip :global([data-s='down']) {
+    background: var(--down);
+  }
+</style>
+
+<script>
+  import { placeTooltip, withinIntent, type Point } from './status-tooltip';
+
+  type State = 'ok' | 'warn' | 'down';
+  interface Status {
+    overall: State;
+    checkedAt: number;
+    services: { name: string; state: State; detail: string }[];
+    uptime30d: number | null;
+  }
+  const LABEL = { ok: 'all systems operational', warn: 'partially degraded', down: 'major outage' } as const;
+
+  const root = document.querySelector<HTMLElement>('[data-status]')!;
+  const dot = root.querySelector<HTMLButtonElement>('.dot')!;
+  const tip = root.querySelector<HTMLElement>('.tip')!;
+  const version = root.dataset.version ?? '';
+  let status: Status | null = null;
+  let mode: 'pointer' | 'anchored' | null = null;
+
+  const el = (tag: string, cls?: string, text?: string) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  };
+
+  function render() {
+    tip.replaceChildren();
+    if (!status) {
+      tip.append(el('span', 'hd', '$ status'), el('span', undefined, 'checking...'));
+      return;
+    }
+    const secs = Math.max(0, Math.round((Date.now() - status.checkedAt) / 1000));
+    tip.append(el('span', 'hd', '$ status'), el('span', 'sub', `${LABEL[status.overall]} \u00b7 checked ${secs} s ago`));
+    for (const s of status.services) {
+      const row = el('span', 'row');
+      const mark = el('i');
+      mark.dataset.s = s.state;
+      row.append(mark, el('span', undefined, s.name), el('em', undefined, s.detail));
+      tip.append(row);
+    }
+    const parts = [
+      status.uptime30d === null ? null : `uptime 30 d · ${(status.uptime30d * 100).toFixed(1)}%`,
+      `v${version}`,
+    ].filter(Boolean);
+    tip.append(el('span', 'ft', parts.join(' · ')));
+  }
+
+  function apply(next: Status) {
+    status = next;
+    dot.dataset.state = next.overall;
+    dot.setAttribute('aria-label', `Site status: ${LABEL[next.overall]}`);
+    // Always rendered so aria-describedby has content at rest.
+    render();
+    if (mode) place();
+  }
+
+  // The CDN can serve this page while Cloud Run is down, so a failed fetch is itself the outage signal.
+  const outage = (): Status => ({
+    overall: 'down',
+    checkedAt: Date.now(),
+    uptime30d: null,
+    services: [
+      { name: 'Website (CDN)', state: 'ok', detail: 'serving' },
+      { name: 'App (Cloud Run)', state: 'down', detail: 'unreachable' },
+      { name: 'Public API', state: 'down', detail: 'unreachable' },
+    ],
+  });
+
+  async function refresh() {
+    try {
+      const res = await fetch('/api/status', { signal: AbortSignal.timeout(5000) });
+      apply(res.ok ? ((await res.json()) as Status) : outage());
+    } catch {
+      apply(outage());
+    }
+  }
+
+  const size = () => ({ width: tip.offsetWidth, height: tip.offsetHeight });
+  const viewport = () => ({ width: document.documentElement.clientWidth, height: window.innerHeight });
+  const center = (): Point => {
+    const r = dot.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  };
+  const put = ([x, y]: Point) => {
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y}px`;
+  };
+
+  let last: Point = [0, 0];
+  function place() {
+    if (mode === 'pointer') return put(placeTooltip(last, size(), viewport()));
+    const r = dot.getBoundingClientRect();
+    const { width, height } = size();
+    const above = r.top - 8 - height;
+    put([
+      Math.min(Math.max(8, r.left + r.width / 2 - width / 2), viewport().width - width - 8),
+      above >= 8 ? above : r.bottom + 8,
+    ]);
+  }
+  function show(next: 'pointer' | 'anchored', pointer?: Point) {
+    mode = next;
+    if (pointer) last = pointer;
+    render();
+    tip.hidden = false;
+    place();
+  }
+  function hide() {
+    mode = null;
+    tip.hidden = true;
+  }
+
+  dot.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse' && mode !== 'anchored') show('pointer', [e.clientX, e.clientY]);
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (mode !== 'pointer') return;
+    last = [e.clientX, e.clientY];
+    if (withinIntent(last, center())) place();
+    else hide();
+  });
+  dot.addEventListener('focus', () => {
+    if (dot.matches(':focus-visible')) show('anchored');
+  });
+  dot.addEventListener('blur', hide);
+  // detail 0 is a keyboard or screen-reader activation, which always opens (reopens after Esc).
+  dot.addEventListener('click', (e) => {
+    if (e.detail !== 0 && mode === 'anchored') hide();
+    else show('anchored');
+  });
+  const onMove = () => {
+    if (mode === 'pointer') hide();
+    else if (mode) place();
+  };
+  window.addEventListener('scroll', onMove, { passive: true });
+  window.addEventListener('resize', onMove);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mode) hide();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (mode === 'anchored' && !root.contains(e.target as Node)) hide();
+  });
+
+  refresh();
+  setInterval(() => {
+    if (!document.hidden) void refresh();
+  }, 60_000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) void refresh();
+  });
+</script>

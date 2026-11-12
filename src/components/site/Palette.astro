@@ -1,0 +1,391 @@
+<dialog class="palette" aria-label="Search or jump to" aria-modal="true" data-palette>
+  <div class="field">
+    <input
+      type="text"
+      role="combobox"
+      aria-label="Search or jump to"
+      aria-expanded="true"
+      aria-controls="palette-list"
+      aria-autocomplete="list"
+      placeholder="Search or jump to..."
+      autocomplete="off"
+      spellcheck="false"
+      data-palette-input
+    />
+    <kbd>esc</kbd>
+  </div>
+  <div class="chips" role="group" aria-label="Filter by group" data-palette-chips></div>
+  <div id="palette-list" class="list" role="listbox" aria-label="Results" data-palette-list></div>
+  <p class="status" role="status" data-palette-status></p>
+  <p class="cheat" aria-hidden="true">
+    <span><kbd>j</kbd> <kbd>k</kbd> next / prev section</span>
+    <span><kbd>t</kbd> theme</span>
+    <span><kbd>r</kbd> resume</span>
+    <span><kbd>g</kbd> <kbd>g</kbd> top</span>
+  </p>
+</dialog>
+
+<style is:global>
+  .palette {
+    width: min(640px, calc(100vw - 32px));
+    max-height: min(560px, 80dvh);
+    margin: 12vh auto auto;
+    padding: 0;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.28);
+    overflow: hidden;
+  }
+  .palette[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .palette::backdrop {
+    background: rgb(20 21 24 / 0.45);
+  }
+  .palette .field {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .palette input {
+    flex: 1;
+    min-width: 0;
+    font: 400 15px/1.2 var(--font-mono);
+    color: var(--fg);
+    background: none;
+    border: 0;
+    outline: 0;
+  }
+  .palette kbd {
+    font: 400 11.5px/1 var(--font-mono);
+    color: var(--faint);
+    padding: 2px 5px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  .palette .chips {
+    display: none;
+    flex: none;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line);
+  }
+  .palette .chips button {
+    flex: none;
+    min-height: 32px;
+    padding: 0 12px;
+    font: 500 12.5px/1 var(--font-mono);
+    color: var(--muted);
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+  }
+  .palette .chips button[aria-pressed='true'] {
+    color: var(--bg);
+    background: var(--fg);
+    border-color: var(--fg);
+  }
+  .palette .list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+  }
+  .palette .group-label {
+    padding: 10px 10px 4px;
+    font: 600 11px/1 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .palette [role='option'] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+  .palette [role='option'][aria-selected='true'] {
+    background: var(--soft);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .palette .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+  }
+  .palette .label {
+    flex: none;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+  .palette .hint {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .palette .keys {
+    flex: none;
+    display: flex;
+    gap: 4px;
+  }
+  .palette .status {
+    margin: 0;
+    padding: 0 16px 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .palette .status:empty {
+    display: none;
+  }
+  .palette .cheat {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 0;
+    padding: 10px 16px;
+    font: 400 12px/1.4 var(--font-mono);
+    color: var(--faint);
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 680px) {
+    .palette {
+      width: 100%;
+      max-width: none;
+      max-height: 85dvh;
+      margin: auto 0 0;
+      border-width: 1px 0 0;
+      border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .palette[open] .chips {
+      display: flex;
+    }
+    .palette [role='option'] {
+      min-height: 52px;
+    }
+    .palette .keys,
+    .palette .cheat,
+    .palette .field kbd {
+      display: none;
+    }
+    .palette input {
+      font-size: 16px; /* stops iOS zooming the page on focus */
+    }
+  }
+</style>
+
+<script>
+  import { GROUPS, dotColor, search, type PaletteItem } from './palette';
+  import { createShortcuts } from './shortcuts';
+  import { toggleTheme } from './theme';
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-palette]')!;
+  const input = dialog.querySelector<HTMLInputElement>('[data-palette-input]')!;
+  const list = dialog.querySelector<HTMLElement>('[data-palette-list]')!;
+  const chips = dialog.querySelector<HTMLElement>('[data-palette-chips]')!;
+  const status = dialog.querySelector<HTMLElement>('[data-palette-status]')!;
+
+  let index: PaletteItem[] | null = null;
+  let results: PaletteItem[] = [];
+  let active = 0;
+  let filter: string | null = null;
+  let opener: HTMLElement | null = null;
+  let failed = false;
+
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string) => {
+    const node = document.createElement(tag);
+    node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  function renderChips() {
+    chips.replaceChildren();
+    const names = ['All', ...GROUPS.filter((g) => (index ?? []).some((i) => i.group === g))];
+    for (const name of names) {
+      const b = el('button', '', name);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String((filter ?? 'All') === name));
+      b.addEventListener('click', () => {
+        filter = name === 'All' ? null : name;
+        renderChips();
+        render();
+        input.focus();
+      });
+      chips.append(b);
+    }
+  }
+
+  function setActive(n: number, scroll = true) {
+    active = n;
+    const options = list.querySelectorAll<HTMLElement>('[role="option"]');
+    options.forEach((o, i) => o.setAttribute('aria-selected', String(i === n)));
+    if (options[n]) {
+      input.setAttribute('aria-activedescendant', options[n].id);
+      if (scroll) options[n].scrollIntoView({ block: 'nearest' });
+    } else input.removeAttribute('aria-activedescendant');
+  }
+
+  function render() {
+    list.replaceChildren();
+    results = search(index ?? [], input.value).filter((i) => !filter || i.group === filter);
+    status.textContent = failed ? 'Search is unavailable right now.' : index ? (results.length ? '' : 'No results.') : '';
+    let group = '';
+    let box: HTMLElement | null = null;
+    results.forEach((item, n) => {
+      if (item.group !== group) {
+        group = item.group;
+        const label = el('div', 'group-label', group);
+        label.id = `palette-g-${group}`;
+        label.setAttribute('aria-hidden', 'true');
+        box = el('div', '');
+        box.setAttribute('role', 'group');
+        box.setAttribute('aria-label', group);
+        list.append(label, box);
+      }
+      const row = el('div', '');
+      row.id = `palette-o-${n}`;
+      row.setAttribute('role', 'option');
+      const dot = el('span', 'dot');
+      dot.style.background = dotColor(item);
+      row.append(dot, el('span', 'label', item.label), el('span', 'hint', item.hint));
+      if (item.keys) {
+        const keys = el('span', 'keys');
+        keys.setAttribute('aria-label', `shortcut ${item.keys.join(' then ')}`);
+        item.keys.forEach((k) => keys.append(el('kbd', '', k)));
+        row.append(keys);
+      }
+      row.addEventListener('click', () => go(item));
+      row.addEventListener('mousemove', () => active !== n && setActive(n, false));
+      box!.append(row);
+    });
+    setActive(Math.min(active, Math.max(results.length - 1, 0)));
+  }
+
+  async function load() {
+    if (index) return;
+    failed = false;
+    status.textContent = 'Loading...';
+    try {
+      const res = await fetch('/search-index.json');
+      if (!res.ok) throw new Error(String(res.status));
+      index = (await res.json()) as PaletteItem[];
+    } catch {
+      failed = true;
+      render();
+      return;
+    }
+    failed = false;
+    renderChips();
+    render();
+  }
+
+  function open(from?: HTMLElement | null) {
+    if (dialog.open) return;
+    opener = from ?? (document.activeElement as HTMLElement | null);
+    input.value = '';
+    filter = null;
+    active = 0;
+    dialog.showModal();
+    input.focus();
+    renderChips();
+    render();
+    void load();
+  }
+
+  function close(restoreFocus = true) {
+    dialog.close();
+    if (restoreFocus) opener?.focus({ preventScroll: true });
+  }
+
+  function scrollToTop() {
+    scrollTo({ top: 0 });
+  }
+
+  function go(item: PaletteItem) {
+    const t = item.target;
+    const known =
+      t === 'action:theme' || t === 'action:top' || t.startsWith('https://') || (t.startsWith('/') && !t.startsWith('//'));
+    if (!known) return; // the index is fetched data: never hand an unknown scheme to the browser
+    close(t.startsWith('action:'));
+    if (t === 'action:theme') toggleTheme();
+    else if (t === 'action:top') scrollToTop();
+    else if (t.startsWith('https://')) window.open(t, '_blank', 'noopener');
+    else location.assign(t);
+  }
+
+  dialog.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      if (results.length) setActive((active + step + results.length) % results.length);
+    } else if (e.key === 'Enter' && results[active]) {
+      e.preventDefault();
+      go(results[active]);
+    }
+  });
+  dialog.addEventListener('cancel', (e) => {
+    e.preventDefault(); // close() ourselves so focus goes back to the opener
+    close();
+  });
+  dialog.addEventListener('click', (e) => e.target === dialog && close());
+  input.addEventListener('input', () => {
+    active = 0;
+    render();
+  });
+  document.addEventListener('click', (e) => {
+    const trigger = (e.target as Element).closest<HTMLElement>('[data-palette-open]');
+    if (trigger) open(trigger);
+  });
+
+  const jump = (id: string) => () => location.assign(`/#${id}`);
+  const home = () => location.pathname === '/';
+  const step = (dir: 1 | -1) => () => {
+    if (!home()) return;
+    const sections = [...document.querySelectorAll<HTMLElement>('[data-spy-section]')];
+    const here = sections.filter((s) => s.getBoundingClientRect().top <= 120).length - 1;
+    const next = here + dir;
+    if (next < 0) scrollToTop();
+    else sections[Math.min(next, sections.length - 1)]?.scrollIntoView();
+  };
+  const shortcuts = createShortcuts({
+    '/': () => open(),
+    'g e': jump('experience'),
+    'g p': jump('projects'),
+    'g d': jump('education'),
+    'g w': jump('writing'),
+    'g a': jump('about'),
+    'g g': scrollToTop,
+    j: step(1),
+    k: step(-1),
+    t: toggleTheme,
+    r: () => location.assign('/resume.pdf'),
+  });
+  addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (dialog.open) input.focus();
+      else open();
+    } else if (!dialog.open) shortcuts(e);
+  });
+</script>

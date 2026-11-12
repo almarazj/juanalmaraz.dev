@@ -1,0 +1,30 @@
+<button type="button" class="theme-toggle" aria-pressed="false" data-theme-toggle>
+  Dark mode
+</button>
+
+<style>
+  .theme-toggle {
+    font: 500 12px/1 var(--font-mono);
+    color: var(--muted);
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: color 150ms;
+  }
+  .theme-toggle:hover {
+    color: var(--fg);
+  }
+</style>
+
+<script>
+  import { toggleTheme } from './theme';
+
+  const button = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+  const sync = () =>
+    button?.setAttribute('aria-pressed', String(document.documentElement.dataset.mode === 'dark'));
+  sync();
+  button?.addEventListener('click', toggleTheme);
+  document.addEventListener('themechange', sync);
+</script>

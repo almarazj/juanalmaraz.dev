@@ -1,0 +1,249 @@
+---
+import type { Certificate, Education } from '../../lib/content/schemas';
+import { imageProps, imageUrl } from '../../lib/images/url';
+import { yearSpan } from './format';
+
+interface Props {
+  degrees: (Education & { id: string })[];
+  certificates: (Certificate & { id: string })[];
+}
+const { degrees, certificates } = Astro.props;
+const original = (c: Certificate) => c.verifyUrl ?? (c.file && imageUrl(c.file, Math.max(...c.file.widths)));
+---
+
+<section id="education" data-spy-section style="--sc: var(--c-education); --c: var(--c-education)">
+  <h2 class="section-label">Education</h2>
+  <div class="sheet">
+    <div id="edu-degree" class="row" data-spy-entry>
+      <h3 class="key">Degree</h3>
+      <div>
+        {
+          degrees.map((d) => (
+            <div class="degree">
+              <p class="title">{d.title}</p>
+              <p class="meta">
+                {d.school} · {yearSpan(d.start, d.end)}
+              </p>
+              <p class="desc">{d.summary}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+    <div id="edu-certs" class="row" data-spy-entry>
+      <h3 class="key">Certs</h3>
+      <ul class="certs">
+        {
+          certificates.map((c, i) => (
+            <li>
+              <button type="button" class="cert" data-cert-open={`cert-${c.id}`} aria-haspopup="dialog">
+                <span class="name">{c.name}</span> <span class="issuer">{c.issuer}</span>
+                {c.level && <span class="level">{c.level}</span>}
+                {i < certificates.length - 1 && (
+                  <span class="sep" aria-hidden="true">
+                    ·
+                  </span>
+                )}
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  {
+    certificates.map((c) => {
+      const href = original(c);
+      return (
+        <dialog id={`cert-${c.id}`} class="cert-dialog" aria-labelledby={`cert-${c.id}-title`}>
+          <div class="dialog-head">
+            <h4 id={`cert-${c.id}-title`}>{c.name}</h4>
+            <form method="dialog">
+              <button class="close" aria-label="Close">
+                ×
+              </button>
+            </form>
+          </div>
+          {c.file ? (
+            <img class="preview" {...imageProps(c.file, '(min-width: 640px) 560px, 90vw')} alt={c.file.alt} />
+          ) : (
+            <div class="paper">
+              <p class="paper-kicker">Certificate</p>
+              <p class="paper-name">{c.name}</p>
+              <p class="paper-meta">
+                {c.issuer} · {c.year}
+                {c.level && ` · Level ${c.level}`}
+              </p>
+            </div>
+          )}
+          {href && (
+            <a class="pill" href={href} target="_blank" rel="noopener">
+              Open original ↗
+            </a>
+          )}
+        </dialog>
+      );
+    })
+  }
+</section>
+
+<style>
+  .sheet {
+    border-top: 1px solid var(--line);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .key {
+    margin: 0;
+    font: 500 12px/1.9 var(--font-mono);
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .degree + .degree {
+    margin-top: 16px;
+  }
+  .title {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .meta {
+    margin: 2px 0 0;
+    font: 400 12.5px/1.5 var(--font-mono);
+    color: var(--muted);
+  }
+  .desc {
+    margin: 6px 0 0;
+  }
+  .certs {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    line-height: 1.9;
+  }
+  /* Buttons cannot flow inline, so each cert wraps as one unit and carries its own separator. */
+  .certs li {
+    display: inline;
+    margin-right: 0.35em;
+  }
+  .sep {
+    margin-left: 0.35em;
+    color: var(--faint);
+  }
+  .cert {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--fg);
+    text-align: start;
+    cursor: pointer;
+  }
+  .cert:hover .name {
+    text-decoration: underline;
+    text-decoration-color: var(--c);
+    text-underline-offset: 3px;
+  }
+  .issuer,
+  .level {
+    white-space: nowrap;
+  }
+  .issuer {
+    font: 400 12px var(--font-mono);
+    color: var(--muted);
+  }
+  .level {
+    margin-left: 4px;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    font: 600 11px var(--font-mono);
+    background: color-mix(in srgb, var(--c) 12%, var(--bg));
+    color: color-mix(in srgb, var(--c) 75%, var(--fg));
+  }
+  .cert-dialog {
+    width: min(480px, calc(100vw - 32px));
+    padding: 16px 20px 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    background: var(--bg);
+    color: var(--fg);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.18);
+  }
+  .cert-dialog::backdrop {
+    background: rgb(0 0 0 / 0.4);
+  }
+  .dialog-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  h4 {
+    margin: 0;
+    font: 600 16px/1.35 var(--font-sans);
+  }
+  .close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .preview {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+  }
+  .paper {
+    padding: 28px 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--soft);
+    text-align: center;
+  }
+  .paper-kicker {
+    margin: 0;
+    font: 500 11px/1.4 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .paper-name {
+    margin: 10px 0 6px;
+    font: 400 22px/1.3 var(--font-serif);
+  }
+  .paper-meta {
+    margin: 0;
+    font: 400 12.5px/1.5 var(--font-mono);
+    color: var(--muted);
+  }
+  .cert-dialog .pill {
+    margin-top: 16px;
+  }
+</style>
+
+<script>
+  for (const trigger of document.querySelectorAll<HTMLButtonElement>('[data-cert-open]')) {
+    const dialog = document.getElementById(trigger.dataset.certOpen!) as HTMLDialogElement;
+    trigger.addEventListener('click', () => dialog.showModal());
+    dialog.addEventListener('click', (e) => {
+      // Backdrop clicks target the dialog itself but land outside its box (padding clicks land inside).
+      const r = dialog.getBoundingClientRect();
+      const outside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      if (e.target === dialog && outside) dialog.close();
+    });
+  }
+</script>

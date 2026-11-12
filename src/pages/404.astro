@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+
+Astro.response.status = 404;
+---
+
+<Base title="Not found · Juan Almaraz" description="This page does not exist.">
+  <main>
+    <h1>This page does not exist.</h1>
+    <p><a href="/">Home</a> · <a href="/writing">Writing</a></p>
+  </main>
+</Base>
+
+<style>
+  main {
+    max-width: 720px;
+    margin-inline: auto;
+    padding-top: 128px;
+  }
+  h1 {
+    margin: 0 0 12px;
+    font: 600 32px/1.2 var(--font-sans);
+    letter-spacing: -0.015em;
+  }
+</style>

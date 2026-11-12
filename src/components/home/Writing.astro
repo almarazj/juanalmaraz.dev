@@ -1,0 +1,59 @@
+---
+import type { Post } from '../../lib/content/schemas';
+
+interface Props {
+  posts: (Post & { id: string; minutes: number })[];
+}
+const { posts } = Astro.props;
+const date = (ms: number) =>
+  new Date(ms).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+---
+
+<section id="writing" data-spy-section style="--sc: var(--c-writing)">
+  <h2 class="section-label">Writing</h2>
+  {
+    posts.map((p) => (
+      <article id={`post-${p.id}`} data-spy-entry>
+        <p class="meta">
+          <time datetime={new Date(p.publishedAt).toISOString()}>{date(p.publishedAt)}</time> · {p.minutes} min read
+        </p>
+        <h3>
+          <a href={`/writing/${p.id}`}>{p.title}</a>
+        </h3>
+        <p class="summary">{p.summary}</p>
+      </article>
+    ))
+  }
+</section>
+
+<style>
+  article + article {
+    margin-top: 24px;
+  }
+  .meta {
+    margin: 0;
+    font: 400 12.5px/1.5 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--sc);
+  }
+  h3 {
+    margin: 2px 0 4px;
+    font: 600 19px/1.35 var(--font-sans);
+  }
+  h3 a {
+    color: var(--fg);
+    text-decoration: none;
+  }
+  h3 a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--sc);
+    text-underline-offset: 3px;
+  }
+  .summary {
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+</style>

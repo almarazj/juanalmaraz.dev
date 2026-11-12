@@ -1,0 +1,151 @@
+---
+interface Props {
+  me: unknown;
+}
+const { me } = Astro.props;
+const endpoints = ['/me', '/stack', '/now'];
+---
+
+<div class="terminal" data-terminal>
+  <div class="bar" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="pane">
+    <p class="cmd"><span class="prompt">$</span> curl juanalmaraz.dev/api</p>
+    <div class="endpoints" role="group" aria-label="API endpoint">
+      {
+        endpoints.map((e, i) => (
+          <button type="button" class="endpoint" aria-pressed={i === 0 ? 'true' : 'false'} data-endpoint={e}>
+            {e}
+          </button>
+        ))
+      }
+    </div>
+    <pre class="out json" data-api-out aria-live="polite" tabindex="0">{JSON.stringify(me, null, 2)}</pre>
+  </div>
+  <div class="pane">
+    <p class="cmd"><span class="prompt">$</span> tail -f access.log</p>
+    <ul class="out feed" data-feed><li class="idle">waiting for requests...</li></ul>
+  </div>
+</div>
+
+<script>
+  import { initTerminal } from './terminal';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-terminal]')) initTerminal(root);
+</script>
+
+<style>
+  .terminal {
+    min-width: 0;
+    container: terminal / inline-size;
+    background: var(--g-bg);
+    color: var(--g-fg);
+    border-radius: var(--radius-panel);
+    font: 400 12.5px/1.6 var(--font-mono);
+    overflow: hidden;
+  }
+  .bar {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--g-line);
+  }
+  .bar span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--g-line);
+  }
+  .pane {
+    padding: 12px 16px 16px;
+  }
+  .pane + .pane {
+    border-top: 1px solid var(--g-line);
+  }
+  .cmd {
+    margin: 0;
+    color: var(--g-fg);
+  }
+  .prompt {
+    color: var(--g-acc);
+  }
+  .endpoints {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .endpoint {
+    min-height: 24px;
+    padding: 2px 10px;
+    border: 1px solid var(--g-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--g-muted);
+    font: inherit;
+    cursor: pointer;
+  }
+  .endpoint[aria-pressed='true'] {
+    border-color: var(--g-acc);
+    color: var(--g-acc);
+  }
+  .endpoint:focus-visible,
+  .json:focus-visible {
+    outline-color: var(--g-acc);
+  }
+  .out {
+    margin: 10px 0 0;
+    color: var(--g-fg);
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  /* JSON lines never wrap mid-string; a narrow pane scrolls instead. */
+  .json {
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+  }
+  .idle {
+    color: var(--g-muted);
+  }
+  .feed {
+    padding: 0;
+    list-style: none;
+    white-space: normal;
+  }
+  .feed :global(li:not(.idle)) {
+    display: grid;
+    grid-template-columns: 4ch minmax(0, 1fr) 3ch 4ch 7ch 10ch;
+    gap: 1ch;
+  }
+  .feed :global(span) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .feed :global(.m),
+  .feed :global(.ms),
+  .feed :global(.t) {
+    color: var(--g-muted);
+  }
+  .feed :global(.ms),
+  .feed :global(.t) {
+    text-align: right;
+  }
+  .feed :global(.ok) {
+    color: var(--g-ok);
+  }
+  .feed :global(.err) {
+    color: var(--g-acc);
+  }
+  .feed :global(.hit) {
+    color: var(--g-info);
+  }
+  @container terminal (max-width: 420px) {
+    .feed :global(li:not(.idle)) {
+      grid-template-columns: 4ch minmax(0, 1fr) 3ch 4ch 10ch;
+    }
+    .feed :global(.ms) {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,78 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { resolveFirebaseConfig } from '../../lib/firebase';
+
+const { projectId } = resolveFirebaseConfig(process.env);
+const emulator = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+// The web API key is public by design; Auth trusts only the authorized domains configured in Firebase.
+const config = {
+  apiKey: process.env.FIREBASE_API_KEY ?? (emulator ? 'demo-key' : ''),
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN ?? `${projectId}.firebaseapp.com`,
+  projectId,
+  emulator: emulator ? `http://${emulator}` : null,
+};
+---
+
+<Admin title="Sign in">
+  <section class="login" data-config={JSON.stringify(config)}>
+    <h1>Sign in</h1>
+    <p class="admin-note">Only the site owner's Google account can open the admin.</p>
+    <button type="button" class="pill primary" data-sign-in>Sign in with Google</button>
+    <p class="admin-error" role="alert" data-login-error></p>
+  </section>
+</Admin>
+
+<script>
+  import { initializeApp } from 'firebase/app';
+  import {
+    connectAuthEmulator, getAuth, GoogleAuthProvider, inMemoryPersistence, signInWithPopup, signOut,
+  } from 'firebase/auth';
+
+  const root = document.querySelector<HTMLElement>('.login')!;
+  const { emulator, ...config } = JSON.parse(root.dataset.config!) as { emulator: string | null; apiKey: string };
+  const auth = getAuth(initializeApp(config));
+  if (emulator) connectAuthEmulator(auth, emulator, { disableWarnings: true });
+  // The server session cookie is the only session; the browser keeps no Firebase login.
+  void auth.setPersistence(inMemoryPersistence);
+
+  const button = root.querySelector<HTMLButtonElement>('[data-sign-in]')!;
+  const error = root.querySelector<HTMLElement>('[data-login-error]')!;
+
+  button.addEventListener('click', async () => {
+    error.textContent = '';
+    button.disabled = true;
+    try {
+      const { user } = await signInWithPopup(auth, new GoogleAuthProvider());
+      const res = await fetch('/admin/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: await user.getIdToken() }),
+      });
+      await signOut(auth);
+      if (res.ok) {
+        // Landing on a protected page shows this form in place; go back to it once signed in.
+        location.replace(location.pathname.startsWith('/admin/login') ? '/admin' : location.href);
+        return;
+      }
+      error.textContent = res.status === 403 ? `${user.email ?? 'This account'} is not allowed here.` : 'Sign-in failed.';
+    } catch (err) {
+      if ((err as { code?: string }).code !== 'auth/popup-closed-by-user') error.textContent = 'Sign-in failed.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .login {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    max-width: 420px;
+    margin: 64px auto 0;
+  }
+  h1 {
+    margin: 0;
+    font: 600 28px/1.2 var(--font-sans);
+  }
+</style>

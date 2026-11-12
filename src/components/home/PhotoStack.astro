@@ -1,0 +1,199 @@
+---
+interface Props {
+  photos: { src: string; srcset?: string; sizes?: string; alt: string; caption: string }[];
+}
+const { photos } = Astro.props;
+const many = photos.length > 1;
+---
+
+<div class="photo-stack" data-photo-stack>
+  <div
+    class="stack"
+    role="group"
+    aria-label={many ? 'Photos: press Enter or the arrow keys for the next one' : 'Photo'}
+    tabindex={many ? 0 : undefined}
+    data-stack
+  >
+    {
+      photos.map((p, i) => (
+        <figure class="polaroid" data-pos={Math.min(i, 3)} style={`z-index: ${photos.length - i}`} aria-hidden={i > 0 ? 'true' : undefined}>
+          <img src={p.src} srcset={p.srcset} sizes={p.sizes} alt={p.alt} draggable="false" loading={i > 2 ? 'lazy' : undefined} />
+          {p.caption && <figcaption>{p.caption}</figcaption>}
+        </figure>
+      ))
+    }
+  </div>
+  {
+    many && (
+      <div class="controls">
+        <span class="counter" data-photo-counter aria-hidden="true">
+          1 / {photos.length}
+        </span>
+        <span class="visually-hidden" data-photo-status aria-live="polite" />
+        <button type="button" class="pill next" data-photo-next>
+          Next photo
+        </button>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .stack {
+    position: relative;
+    width: 200px;
+    height: 242px;
+    margin: 8px auto 0;
+    touch-action: pan-y;
+    border-radius: var(--radius-card);
+  }
+  .stack[tabindex] {
+    cursor: grab;
+  }
+  .polaroid {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 10px 10px 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+    transition:
+      translate 200ms ease,
+      rotate 200ms ease;
+    user-select: none;
+  }
+  .polaroid[data-pos='0'] {
+    rotate: -2deg;
+  }
+  .polaroid[data-pos='1'] {
+    rotate: 4deg;
+    translate: 6px 2px;
+  }
+  .polaroid[data-pos='2'] {
+    rotate: -6deg;
+    translate: -6px 4px;
+  }
+  .polaroid[data-pos='3'] {
+    rotate: 1deg;
+    translate: 0 6px;
+  }
+  :global([data-mode='dark']) .polaroid {
+    background: #e9e8e4;
+    border-color: transparent;
+  }
+  .polaroid.dragging {
+    transition: none;
+    cursor: grabbing;
+  }
+  .polaroid img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: #eee;
+  }
+  figcaption {
+    padding: 10px 2px;
+    font: 400 15px/1.2 var(--font-serif);
+    font-style: italic;
+    text-align: center;
+    color: #3a3f46;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .counter {
+    font: 400 12.5px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+  }
+  .next {
+    min-height: 28px;
+    padding: 2px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  import { cycle, shouldSendBack } from './photo-stack';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-photo-stack]')) {
+    const stack = root.querySelector<HTMLElement>('[data-stack]')!;
+    const cards = [...stack.querySelectorAll<HTMLElement>('.polaroid')];
+    const counter = root.querySelector<HTMLElement>('[data-photo-counter]');
+    const status = root.querySelector<HTMLElement>('[data-photo-status]');
+    if (cards.length < 2 || !counter || !status) continue;
+    let order = cards;
+    let announced = cards[0];
+
+    const render = () => {
+      order.forEach((card, pos) => {
+        card.dataset.pos = String(Math.min(pos, 3));
+        card.style.zIndex = String(order.length - pos);
+        card.style.translate = '';
+        if (pos === 0) card.removeAttribute('aria-hidden');
+        else card.setAttribute('aria-hidden', 'true');
+      });
+      const n = cards.indexOf(order[0]) + 1;
+      counter.textContent = `${n} / ${cards.length}`;
+      const top = order[0];
+      const caption = top.querySelector('figcaption')?.textContent?.trim();
+      const alt = top.querySelector('img')?.alt;
+      const message = `Photo ${n} of ${cards.length}: ${[caption, alt].filter(Boolean).join(', ')}`;
+      // A drag that snaps back re-renders the same photo; announce only a new top photo.
+      if (top !== announced) status.textContent = message;
+      announced = top;
+    };
+    const next = () => {
+      order = cycle(order);
+      render();
+    };
+    const prev = () => {
+      order = [order[order.length - 1], ...order.slice(0, -1)];
+      render();
+    };
+
+    root.querySelector('[data-photo-next]')!.addEventListener('click', next);
+    stack.addEventListener('keydown', (e) => {
+      if (['Enter', ' ', 'ArrowRight', 'ArrowDown'].includes(e.key)) next();
+      else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) prev();
+      else return;
+      e.preventDefault();
+    });
+
+    let drag: { id: number; x: number; y: number; card: HTMLElement } | null = null;
+    const delta = (e: PointerEvent) => [e.clientX - drag!.x, e.clientY - drag!.y] as const;
+    stack.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || !order[0].contains(e.target as Node)) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, card: order[0] };
+      stack.setPointerCapture(e.pointerId);
+      drag.card.classList.add('dragging');
+    });
+    stack.addEventListener('pointermove', (e) => {
+      if (drag?.id !== e.pointerId) return;
+      const [dx, dy] = delta(e);
+      drag.card.style.translate = `${dx}px ${dy}px`;
+    });
+    const end = (e: PointerEvent, cancelled: boolean) => {
+      if (drag?.id !== e.pointerId) return;
+      const [dx, dy] = delta(e);
+      drag.card.classList.remove('dragging');
+      drag = null;
+      // A tap (barely any travel) also cycles.
+      if (!cancelled && (shouldSendBack(dx, dy) || Math.hypot(dx, dy) < 5)) next();
+      else render();
+    };
+    stack.addEventListener('pointerup', (e) => end(e, false));
+    stack.addEventListener('pointercancel', (e) => end(e, true));
+  }
+</script>

@@ -1,0 +1,131 @@
+---
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const email = Astro.locals.adminEmail;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title} · admin</title>
+    <script is:inline>
+      try {
+        if (localStorage.getItem('mode') === 'dark') document.documentElement.dataset.mode = 'dark';
+      } catch {
+        // storage blocked: stay light
+      }
+    </script>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/admin">admin</a>
+      {
+        email && (
+          <nav aria-label="Admin">
+            <span class="who">{email}</span>
+            <a href="/" target="_blank" rel="noopener">View site ↗</a>
+            <button type="button" class="pill" data-sign-out>Sign out</button>
+          </nav>
+        )
+      }
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>
+
+<script>
+  document.querySelector('[data-sign-out]')?.addEventListener('click', async () => {
+    await fetch('/admin/api/session', { method: 'DELETE' });
+    location.assign('/admin/login');
+  });
+</script>
+
+<style>
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-block: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font: 600 14px/1 var(--font-mono);
+    color: var(--fg);
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: 14px;
+  }
+  .who {
+    font: 400 13px/1 var(--font-mono);
+    color: var(--muted);
+  }
+  button.pill {
+    cursor: pointer;
+  }
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-block: 32px 64px;
+  }
+  /* Shared admin form styles; scoped components extend these. */
+  :global(.admin-input) {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+    color: var(--fg);
+    font: 400 14px/1.5 var(--font-sans);
+  }
+  :global(textarea.admin-input) {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    resize: vertical;
+  }
+  :global(.admin-input[aria-invalid='true']) {
+    border-color: var(--down);
+  }
+  :global(.admin-error) {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--down);
+  }
+  :global(.admin-error:empty) {
+    display: none;
+  }
+  :global(.admin-note) {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  :global(button.primary) {
+    border-color: var(--fg);
+    background: var(--fg);
+    color: var(--bg);
+    cursor: pointer;
+  }
+  :global(button.primary:disabled) {
+    opacity: 0.6;
+    cursor: progress;
+  }
+</style>

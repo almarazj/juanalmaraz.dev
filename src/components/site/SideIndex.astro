@@ -1,0 +1,112 @@
+---
+interface Props {
+  sections: { id: string; title: string; color: string; entries: { id: string; title: string }[] }[];
+}
+const { sections } = Astro.props;
+---
+
+<nav class="rail" aria-label="On this page">
+  <p class="label">On this page</p>
+  <ul>
+    {
+      sections.map((s) => (
+        <li data-section={s.id} style={`--sc: ${s.color}`}>
+          <a class="section" href={`#${s.id}`}>
+            {s.title}
+          </a>
+          <ul class="entries" hidden>
+            {s.entries.map((e) => (
+              <li>
+                <a class="entry" href={`#${e.id}`}>
+                  {e.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))
+    }
+  </ul>
+  <slot />
+  <a class="top" href="#top">↑ back to top</a>
+</nav>
+
+<style>
+  /* The page places the rail in its own grid column; it sticks below the header once scrolled to. */
+  .rail {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    width: var(--rail-width);
+    font: 400 12.5px/1.4 var(--font-mono);
+  }
+  @media (max-width: 959px) {
+    .rail {
+      display: none;
+    }
+  }
+  .label {
+    margin: 0 0 8px 12px;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 1px solid var(--line);
+  }
+  .entries {
+    border-left: 0;
+    margin-left: 12px;
+  }
+  a {
+    display: block;
+    padding: 4px 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -1px;
+  }
+  .entries a {
+    padding-block: 2px;
+  }
+  a:hover {
+    color: var(--fg);
+  }
+  a.on {
+    color: var(--sc, var(--fg));
+    font-weight: 600;
+  }
+  .section.on {
+    border-left-color: var(--sc);
+  }
+  .top {
+    margin-top: 12px;
+    color: var(--faint);
+  }
+</style>
+
+<script>
+  import { trackSections } from './scrollspy';
+
+  const toggleCurrent = (el: Element, on: boolean) =>
+    on ? el.setAttribute('aria-current', 'location') : el.removeAttribute('aria-current');
+  const rail = document.querySelector<HTMLElement>('.rail')!;
+  trackSections((sectionId, entryId) => {
+    for (const li of rail.querySelectorAll<HTMLElement>('[data-section]')) {
+      const current = li.dataset.section === sectionId;
+      li.querySelector<HTMLElement>('.entries')!.hidden = !current;
+      const link = li.querySelector('.section')!;
+      link.classList.toggle('on', current);
+      toggleCurrent(link, current);
+    }
+    for (const a of rail.querySelectorAll<HTMLAnchorElement>('a.entry')) {
+      const on = a.hash === `#${entryId}`;
+      a.classList.toggle('on', on);
+      toggleCurrent(a, on);
+    }
+  });
+</script>

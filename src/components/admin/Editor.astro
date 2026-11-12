@@ -1,0 +1,233 @@
+---
+import '../../styles/prose.css';
+import { fieldsOf, toFormValue, type EditableCollection } from '../../lib/content/editable';
+
+interface Props {
+  collection: EditableCollection;
+  /** null while creating: the form then asks for the id. */
+  id: string | null;
+  doc: Record<string, unknown> | null;
+}
+
+const { collection, id, doc } = Astro.props;
+const fields = fieldsOf(collection);
+const value = (name: string) => toFormValue(fields.find((f) => f.name === name)!, doc?.[name]);
+const hint = (f: (typeof fields)[number]) =>
+  f.kind === 'list' ? 'Comma-separated' : f.kind === 'json' ? 'JSON' : f.nullable ? 'Empty means none' : f.optional ? 'Optional' : '';
+---
+
+<form class="editor" data-editor data-collection={collection} data-id={id ?? ''} novalidate>
+  {
+    id === null && (
+      <div class="field">
+        <label for="f-id">id</label>
+        <input class="admin-input" id="f-id" name="id" required pattern="[a-z0-9][a-z0-9-]*" aria-describedby="err-id hint-id" />
+        <p class="admin-note" id="hint-id">The URL slug: lowercase letters, digits and dashes. It cannot change later.</p>
+        <p class="admin-error" id="err-id" />
+      </div>
+    )
+  }
+  {
+    fields.map((f) => {
+      const v = value(f.name);
+      const describedBy = `err-${f.name}${hint(f) ? ` hint-${f.name}` : ''}`;
+      const control =
+        f.kind === 'checkbox' ? (
+          <input type="checkbox" id={`f-${f.name}`} name={f.name} checked={v === true} aria-describedby={describedBy} />
+        ) : f.kind === 'select' ? (
+          <select class="admin-input" id={`f-${f.name}`} name={f.name} aria-describedby={describedBy}>
+            {f.options.map((o) => (
+              <option selected={o === v}>{o}</option>
+            ))}
+          </select>
+        ) : f.kind === 'markdown' || f.kind === 'textarea' || f.kind === 'json' ? (
+          <textarea
+            class="admin-input"
+            id={`f-${f.name}`}
+            name={f.name}
+            rows={f.kind === 'markdown' ? 24 : f.kind === 'json' ? 6 : 3}
+            spellcheck={f.kind === 'json' ? 'false' : 'true'}
+            aria-describedby={describedBy}
+            data-markdown={f.kind === 'markdown' ? '' : undefined}
+            set:text={v}
+          />
+        ) : (
+          <input
+            class="admin-input"
+            id={`f-${f.name}`}
+            name={f.name}
+            type={f.kind === 'number' ? 'number' : 'text'}
+            step={f.kind === 'number' ? 'any' : undefined}
+            value={String(v)}
+            aria-describedby={describedBy}
+          />
+        );
+      return (
+        <div class:list={['field', f.kind]}>
+          <label for={`f-${f.name}`}>{f.name}</label>
+          {f.kind === 'markdown' ? (
+            <div class="split">
+              {control}
+              <div class="preview prose" aria-live="polite" aria-label={`${f.name} preview`} data-preview-for={f.name} />
+            </div>
+          ) : (
+            control
+          )}
+          {hint(f) && <p class="admin-note" id={`hint-${f.name}`}>{hint(f)}</p>}
+          <p class="admin-error" id={`err-${f.name}`} />
+        </div>
+      );
+    })
+  }
+  <div class="actions">
+    <button class="pill primary" type="submit">{id === null ? 'Create' : 'Save'}</button>
+    <p class="admin-note" role="status" data-save-status></p>
+  </div>
+  <p class="admin-error" role="alert" id="err-_"></p>
+</form>
+
+<script>
+  import { fieldsOf, fromForm, validate, type EditableCollection, type FieldErrors } from '../../lib/content/editable';
+
+  const form = document.querySelector<HTMLFormElement>('[data-editor]')!;
+  const collection = form.dataset.collection as EditableCollection;
+  const fields = fieldsOf(collection);
+  const status = form.querySelector<HTMLElement>('[data-save-status]')!;
+  const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+
+  function showErrors(errors: FieldErrors) {
+    for (const el of form.querySelectorAll<HTMLElement>('.admin-error')) el.textContent = '';
+    for (const el of form.querySelectorAll('[aria-invalid]')) el.removeAttribute('aria-invalid');
+    for (const [name, message] of Object.entries(errors)) {
+      const slot = form.querySelector(`#err-${CSS.escape(name)}`) ?? form.querySelector('#err-_')!;
+      slot.textContent = slot.id === 'err-_' ? `${name}: ${message}` : message;
+      form.querySelector(`#f-${CSS.escape(name)}`)?.setAttribute('aria-invalid', 'true');
+    }
+    const first = Object.keys(errors)[0];
+    if (first) form.querySelector<HTMLElement>(`#f-${CSS.escape(first)}`)?.focus();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    status.textContent = '';
+    const values: Record<string, string | boolean> = {};
+    for (const f of fields) {
+      const el = form.elements.namedItem(f.name) as HTMLInputElement;
+      values[f.name] = f.kind === 'checkbox' ? el.checked : el.value;
+    }
+    const read = fromForm(fields, values);
+    const checked = validate(collection, read.data);
+    const errors = { ...(checked.ok ? {} : checked.errors), ...read.errors };
+    const creating = form.dataset.id === '';
+    const id = creating ? (form.elements.namedItem('id') as HTMLInputElement).value.trim() : form.dataset.id!;
+    if (creating && !/^[a-z0-9][a-z0-9-]*$/.test(id)) errors.id = 'Use lowercase letters, digits and dashes';
+    showErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    button.disabled = true;
+    status.textContent = 'Saving…';
+    try {
+      const res = await fetch('/admin/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collection, id, data: read.data, create: creating }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        location.assign(`/admin/${collection}/${id}?saved=1`);
+        return;
+      }
+      status.textContent = '';
+      showErrors(body.errors ?? { _: body.error ?? `HTTP ${res.status}` });
+    } catch {
+      status.textContent = '';
+      showErrors({ _: 'Network error; nothing was saved.' });
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  if (new URLSearchParams(location.search).has('saved')) {
+    status.textContent = 'Saved.';
+    history.replaceState(null, '', location.pathname);
+  }
+
+  for (const textarea of form.querySelectorAll<HTMLTextAreaElement>('[data-markdown]')) {
+    const preview = form.querySelector<HTMLElement>(`[data-preview-for="${textarea.name}"]`)!;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let seq = 0;
+    const render = async () => {
+      const mine = ++seq;
+      const res = await fetch('/admin/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ md: textarea.value }),
+      });
+      // Drop responses that arrive after a newer keystroke's.
+      if (mine !== seq) return;
+      // The server sanitizes this HTML with the same pipeline as public pages.
+      preview.innerHTML = res.ok ? (await res.json()).html : '<p>Preview unavailable.</p>';
+    };
+    textarea.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(render, 250);
+    });
+    void render();
+  }
+</script>
+
+<style>
+  .editor {
+    display: grid;
+    gap: 20px;
+  }
+  .field {
+    display: grid;
+    gap: 4px;
+  }
+  .field.checkbox {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 8px;
+  }
+  .field.checkbox label {
+    order: 2;
+  }
+  .field.checkbox > :not(label, input) {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  label {
+    font: 500 13px/1.4 var(--font-mono);
+    color: var(--muted);
+  }
+  .split {
+    display: grid;
+    gap: 16px;
+  }
+  @media (min-width: 960px) {
+    .split {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .preview {
+    min-height: 200px;
+    max-height: 640px;
+    overflow: auto;
+    padding: 0 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+  }
+  /* The textarea's height drives the row; the preview scrolls inside it. */
+  .split {
+    align-items: stretch;
+  }
+  .preview :global(img) {
+    max-width: 100%;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+</style>

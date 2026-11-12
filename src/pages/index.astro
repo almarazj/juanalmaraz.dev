@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import SideIndex from '../components/site/SideIndex.astro';
+import Hero from '../components/home/Hero.astro';
+import Experience from '../components/home/Experience.astro';
+import Projects from '../components/home/Projects.astro';
+import Education from '../components/home/Education.astro';
+import Writing from '../components/home/Writing.astro';
+import About from '../components/home/About.astro';
+import { getSingleton, listPublished } from '../lib/content/repo';
+import { readingMinutes, renderMarkdown } from '../lib/markdown/render';
+
+const [experience, projects, degrees, certificates, postDocs, about, site] = await Promise.all([
+  listPublished('experience'),
+  listPublished('projects'),
+  listPublished('education'),
+  listPublished('certificates'),
+  listPublished('posts'),
+  getSingleton('about/main'),
+  getSingleton('site/main'),
+]);
+const backend = projects.filter((p) => p.group === 'backend');
+const engineering = projects.filter((p) => p.group === 'engineering');
+const bio = await renderMarkdown(about.bio);
+const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
+
+const sections = [
+  {
+    id: 'experience', title: 'Experience', color: 'var(--c-experience)',
+    entries: experience.map((x) => ({ id: `exp-${x.id}`, title: x.role })),
+  },
+  {
+    id: 'projects', title: 'Projects', color: 'var(--c-projects)',
+    entries: [
+      { id: 'proj-backend', title: 'Backend' },
+      { id: 'proj-engineering', title: 'Earlier engineering work' },
+    ],
+  },
+  {
+    id: 'education', title: 'Education', color: 'var(--c-education)',
+    entries: [
+      { id: 'edu-degree', title: 'Degree' },
+      { id: 'edu-certs', title: 'Certificates' },
+    ],
+  },
+  {
+    id: 'writing', title: 'Writing', color: 'var(--c-writing)',
+    entries: posts.map((p) => ({ id: `post-${p.id}`, title: p.title })),
+  },
+  {
+    id: 'about', title: 'About', color: 'var(--c-about)',
+    entries: [
+      { id: 'about-me', title: 'Photos and bio' },
+      { id: 'about-questions', title: 'Quick questions' },
+    ],
+  },
+];
+---
+
+<Base title="Juan Almaraz · Backend engineer" description={site.lede}>
+  <main class="page">
+    <Hero site={site} />
+    <div class="with-rail">
+      <SideIndex sections={sections} />
+      <div class="sections">
+        <Experience items={experience} now={new Date()} />
+        <Projects backend={backend} engineering={engineering} />
+        <Education degrees={degrees} certificates={certificates} />
+        <Writing posts={posts} />
+        <About about={about} bioHtml={bio.html} />
+      </div>
+    </div>
+  </main>
+</Base>
+
+<style>
+  main {
+    container: page / inline-size;
+  }
+  /* Matches the rail layout's content column, so the measure holds when the rail hides. */
+  .sections {
+    max-width: 720px;
+  }
+  .sections > :global(section[data-spy-section]) {
+    margin-bottom: var(--section-gap);
+    scroll-margin-top: 100px;
+  }
+  .sections > :global(section:last-child) {
+    margin-bottom: 0;
+  }
+  main :global([data-spy-entry]) {
+    scroll-margin-top: 100px;
+  }
+</style>

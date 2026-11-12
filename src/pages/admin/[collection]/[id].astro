@@ -1,0 +1,68 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Editor from '../../../components/admin/Editor.astro';
+import ImageUpload from '../../../components/admin/ImageUpload.astro';
+import RevisionList from '../../../components/admin/RevisionList.astro';
+import { ID, isEditable, SINGLETONS } from '../../../lib/content/editable';
+import { getRaw, listRevisions } from '../../../lib/content/repo';
+
+const { collection = '', id = '' } = Astro.params;
+if (!isEditable(collection)) return Astro.rewrite('/404');
+const singleton = SINGLETONS.includes(collection);
+if (singleton ? id !== 'main' : id !== 'new' && !ID.test(id)) return Astro.rewrite('/404');
+
+const creating = !singleton && id === 'new';
+const [doc, revisions] = creating ? [null, []] : await Promise.all([getRaw(collection, id), listRevisions(collection, id)]);
+// A missing singleton opens empty so the first save creates it; a missing item is a typo.
+if (!creating && !singleton && !doc) return Astro.rewrite('/404');
+const title = creating ? `New ${collection}` : singleton ? collection : `${collection}/${id}`;
+---
+
+<Admin title={title}>
+  <p class="crumbs"><a href="/admin">Content</a> / {collection}</p>
+  <h1>{creating ? `New in ${collection}` : singleton ? collection : id}</h1>
+  <div class="layout">
+    <Editor collection={collection} id={creating ? null : id} doc={doc} />
+    <aside>
+      {!creating && <RevisionList collection={collection} id={id} revisions={revisions} />}
+      <section aria-labelledby="h-img">
+        <h2 id="h-img">Image</h2>
+        <ImageUpload />
+      </section>
+    </aside>
+  </div>
+</Admin>
+
+<style>
+  .crumbs {
+    margin: 0 0 4px;
+    font: 400 13px/1.4 var(--font-mono);
+    color: var(--faint);
+  }
+  h1 {
+    margin: 0 0 24px;
+    font: 600 28px/1.2 var(--font-sans);
+    overflow-wrap: anywhere;
+  }
+  .layout {
+    display: grid;
+    gap: 32px;
+  }
+  @media (min-width: 1100px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+  }
+  aside {
+    display: grid;
+    align-content: start;
+    gap: 32px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font: 600 13px/1.4 var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+</style>

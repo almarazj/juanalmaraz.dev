@@ -1,0 +1,130 @@
+---
+import type { Experience } from '../../lib/content/schemas';
+import { monthLabel } from './format';
+import { tenure } from './tenure';
+
+interface Props {
+  items: (Experience & { id: string })[];
+  now: Date;
+}
+const { items, now } = Astro.props;
+---
+
+<section id="experience" data-spy-section style="--sc: var(--c-experience); --c: var(--c-experience)">
+  <h2 class="section-label">Experience</h2>
+  {
+    items.map((x) => {
+      const t = tenure(x.start, x.end, now);
+      const years = t.years.toFixed(1);
+      return (
+        <article id={`exp-${x.id}`} data-spy-entry>
+          <span class="monogram" aria-hidden="true">{x.monogram}</span>
+          <div class="body">
+            <div class="head">
+              <h3>{x.role}</h3>
+              <p class="period">
+                {monthLabel(x.start)} - {x.end ? monthLabel(x.end) : 'now'}
+              </p>
+            </div>
+            <p class="org">
+              {x.org} · {x.place}
+            </p>
+            <div class="tenure">
+              <span class="track" role="img" aria-label={`${years} years at ${x.org}`}>
+                <span class="fill" style={`width: ${t.widthPct}%`} />
+              </span>
+              <span class="years" aria-hidden="true">{years} yrs</span>
+            </div>
+            <p class="summary">{x.summary}</p>
+            {x.stack.length > 0 && (
+              <ul class="chips" aria-label="Stack">
+                {x.stack.map((s) => (
+                  <li class="chip">{s}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </article>
+      );
+    })
+  }
+</section>
+
+<style>
+  article {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 16px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+  }
+  article + article {
+    margin-top: 12px;
+  }
+  .monogram {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-card);
+    background: var(--sc);
+    color: var(--bg);
+    font: 600 14px/1 var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2px 16px;
+  }
+  h3 {
+    margin: 0;
+    font: 600 16px/1.35 var(--font-sans);
+  }
+  .period {
+    margin: 0;
+    font: 400 12.5px/1.35 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .org {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .tenure {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .track {
+    flex: 0 1 220px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--line);
+    overflow: hidden;
+  }
+  .fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--sc);
+  }
+  .years {
+    font: 400 12px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .summary {
+    margin: 10px 0 12px;
+  }
+  .summary:last-child {
+    margin-bottom: 0;
+  }
+</style>

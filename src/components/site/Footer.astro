@@ -1,0 +1,79 @@
+---
+import { buildInfo } from '../../lib/build-info';
+import StatusDot from './StatusDot.astro';
+---
+
+<footer class="site-footer">
+  <div class="row">
+    <p>
+      © 2026 Juan Almaraz · <a href="https://github.com/almarazj">GitHub</a>{' · '}<a
+        href="https://www.linkedin.com/in/juan-almaraz/">LinkedIn</a
+      >{' · '}<a href="/rss.xml">RSS</a>
+    </p>
+    <p class="stamp">
+      <span class="chip" data-stamp>
+        <span>v{buildInfo.version}</span><span>{buildInfo.commit}</span><span>{buildInfo.branch}</span>
+      </span>
+      <StatusDot />
+    </p>
+  </div>
+  <div class="row hints">
+    <p><kbd>/</kbd> search <kbd>j</kbd> <kbd>k</kbd> sections <kbd>t</kbd> theme <kbd>r</kbd> resume</p>
+    <a href="#top">↑ back to top</a>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    max-width: var(--page-max);
+    margin: var(--section-gap) auto 0;
+    padding-block: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 24px;
+  }
+  .row + .row {
+    margin-top: 8px;
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: var(--muted);
+  }
+  .stamp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    font: 400 11.5px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .chip span {
+    padding: 4px 8px;
+  }
+  .chip span + span {
+    border-left: 1px solid var(--line);
+  }
+  .hints {
+    font: 400 12px/1.6 var(--font-mono);
+    color: var(--faint);
+  }
+  kbd {
+    font: inherit;
+    padding: 0 4px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+</style>

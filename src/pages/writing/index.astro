@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import Writing from '../../components/home/Writing.astro';
+import { listPublished } from '../../lib/content/repo';
+import { readingMinutes } from '../../lib/markdown/render';
+
+const posts = (await listPublished('posts')).map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
+---
+
+<Base title="Writing · Juan Almaraz" description="Posts by Juan Almaraz.">
+  <main>
+    <Writing posts={posts} />
+  </main>
+</Base>
+
+<style>
+  main {
+    max-width: 720px;
+    margin-inline: auto;
+    padding-top: 96px;
+  }
+</style>

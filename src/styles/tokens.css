@@ -1,0 +1,63 @@
+:root {
+  --bg: #fbfbfa;
+  --fg: #17191c;
+  --muted: #5f6670;
+  --faint: #8a9099;
+  --line: #e2e4e7;
+  --soft: #f1f2f3;
+  --accent: #c2410c;
+  --ok: #1f8a4c;
+  --warn: #b7791f;
+  --down: #c53030;
+
+  --c-experience: #2457c5;
+  --c-projects: #c2410c;
+  --c-engineering: #0e7c86;
+  --c-education: #2f7a4f;
+  --c-writing: #7a3fb8;
+  --c-about: #b4366f;
+
+  --g-bg: #3a3f46;
+  --g-fg: #eceef1;
+  --g-muted: #b4bac3;
+  --g-line: #4b5159;
+  --g-acc: #ffb15c;
+  --g-ok: #7fe0a8;
+  --g-info: #a9c1ff;
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+
+  --gutter-l: max(16px, env(safe-area-inset-left));
+  --gutter-r: max(16px, env(safe-area-inset-right));
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-pill: 999px;
+  --section-gap: 44px;
+  /* Hero, footer, and content plus rail all share this width. */
+  --page-max: 960px;
+  --rail-width: 180px;
+  --rail-gap: 60px;
+}
+
+:root[data-mode='dark'] {
+  --bg: #141518;
+  --fg: #e9ebee;
+  --muted: #9ba2ac;
+  --faint: #6e757f;
+  --line: #2a2d32;
+  --soft: #1d1f23;
+  --accent: #fb8a4c;
+  --ok: #4cc985;
+  --warn: #f2b84b;
+  --down: #f07171;
+
+  --c-experience: #86a8ff;
+  --c-projects: #fb8a4c;
+  --c-engineering: #4cc3cc;
+  --c-education: #7cc79a;
+  --c-writing: #c49af0;
+  --c-about: #f07aae;
+}
