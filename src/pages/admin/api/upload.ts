@@ -41,11 +41,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const key = body.key;
   if (typeof key !== 'string' || !KEY.test(key)) return bad('Invalid upload key');
   const alt = String(body.alt ?? '').trim();
-  if (kind === 'image' && !alt) return bad('Alt text required');
-  const site = kind === 'resume' ? await getRaw('site', 'main') : null;
-  if (kind === 'resume' && !site) return bad('Create the site page first', 409);
 
   try {
+    if (kind === 'image' && !alt) return bad('Alt text required');
+    const site = kind === 'resume' ? await getRaw('site', 'main') : null;
+    if (kind === 'resume' && !site) return bad('Create the site page first', 409);
     const object = await s3().send(new GetObjectCommand({ Bucket, Key: key })).catch(() => null);
     if (!object?.Body) return bad('Upload not found', 404);
     const bytes = Buffer.from(await object.Body.transformToByteArray());

@@ -68,11 +68,22 @@ describe('POST /admin/api/upload', () => {
   });
 
   it('requires alt text and rejects non-images', async () => {
+    const before = await incoming();
+    const noAlt = await upload('image', Buffer.from('hello'));
+    expect((await call({ step: 'process', kind: 'image', key: noAlt, name: 'a.png', alt: '' })).status).toBe(400);
+    expect(await incoming()).toBe(before);
     const key = await upload('image', Buffer.from('hello'));
-    expect((await call({ step: 'process', kind: 'image', key, name: 'a.png', alt: '' })).status).toBe(400);
     const res = await call({ step: 'process', kind: 'image', key, name: 'a.png', alt: 'a' });
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'Unsupported image' });
+  });
+
+  it('rejects a resume without a site doc and leaves nothing in incoming', async () => {
+    await resetTable();
+    const before = await incoming();
+    const key = await upload('resume', Buffer.from('%PDF-1.4\n'));
+    expect((await call({ step: 'process', kind: 'resume', key })).status).toBe(409);
+    expect(await incoming()).toBe(before);
   });
 
   it('stores a resume at the default path and records it on the site doc', async () => {

@@ -14,8 +14,9 @@ export const GET: APIRoute = async ({ rewrite }) => {
       throw err;
     });
     if (!object?.Body) return rewrite('/404');
-    return new Response(new Uint8Array(await object.Body.transformToByteArray()), {
+    return new Response(object.Body.transformToWebStream(), {
       headers: {
+        ...(object.ContentLength !== undefined && { 'Content-Length': String(object.ContentLength) }),
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="juan-almaraz-resume.pdf"',
         ...cacheHeaders('page'),
