@@ -43,19 +43,10 @@ a {
   margin-inline: auto;
 }
 
-/*
- * Content column plus the "On this page" rail; one column under 960px, where the rail hides.
- * From 960px the rail sits beside the content inside the page; once there is room for a rail on
- * both sides, the content centers in the viewport and the rail moves out to its right.
- */
+/* Content plus the "On this page" rail at the right edge of the page; one column under 960px, where the rail hides. */
 .with-rail {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-}
-.with-rail > :not(.rail) {
-  width: 100%;
-  max-width: var(--content-max);
-  margin-inline: auto;
 }
 @media (min-width: 960px) {
   .with-rail {
@@ -65,18 +56,6 @@ a {
   .with-rail > .rail {
     grid-column: 2;
     grid-row: 1;
-  }
-}
-@media (min-width: 1240px) {
-  .with-rail {
-    grid-template-columns: var(--rail-width) var(--content-max) var(--rail-width);
-    margin-inline: calc((var(--page-max) - var(--content-max)) / 2 - var(--rail-width) - var(--rail-gap));
-  }
-  .with-rail > :not(.rail) {
-    grid-column: 2;
-  }
-  .with-rail > .rail {
-    grid-column: 3;
   }
 }
 

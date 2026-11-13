@@ -24,7 +24,8 @@ import ThemeToggle from './ThemeToggle.astro';
     align-items: center;
     gap: 16px;
     height: 56px;
-    padding-inline: var(--gutter-l) var(--gutter-r);
+    /* Lines its edges up with the page frame below. */
+    padding-inline: max(var(--gutter-l), (100% - var(--page-max)) / 2) max(var(--gutter-r), (100% - var(--page-max)) / 2);
     background: var(--bg);
     border-bottom: 1px solid transparent;
     transition: border-color 150ms;

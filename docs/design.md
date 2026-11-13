@@ -105,9 +105,11 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 - Radius: 6px for controls and stamps, 8px for cards, 10 to 12px for panels and popovers, 999px for pills.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.
-- The hero terminal and the content share one 720px column; the footer spans the 960px page.
-- From 1240px the column is centered in the viewport and the side index (180px) sits 60px to its right; between 960px and 1240px the column and the side index share the 960px page; under 960px the column is centered alone.
-- Breakpoints: 680px (phone), 960px (rail hides), 1240px (column centers).
+- Header, page and footer share one 1040px frame, centered in the viewport; their edges line up.
+- The hero terminal spans the whole frame.
+- Below it the content fills the frame left of the side index (180px), with a 100px gap; the side index ends at the frame's right edge.
+- Under 960px the side index hides and the content takes the full width.
+- Breakpoints: 680px (phone), 960px (rail hides).
 
 ## Components
 
@@ -121,7 +123,7 @@ Labs: [header](https://claude.ai/artifact/LxLYdHMRYY8WJktsCJ4utF) (variants 3 an
 
 ### Hero
 
-The hero is one terminal as wide as the content column (440px tall; on phones `min(600px, 85svh)`), with a visually hidden h1 carrying the name.
+The hero is one terminal as wide as the page frame (440px tall; on phones `min(600px, 85svh)`), with a visually hidden h1 carrying the name.
 It opens straight on `juan@ubuntu:~$ neofetch` and its output: a spinning 3D "JA" in ASCII on the left and, on the right, Role, Uptime (years in software engineering, from `careerStart`), Stack, Based (with Buenos Aires local time), Education, Languages, Links (resume, github, linkedin) and Packages (published projects and posts), then the color swatches and "type help to look around".
 The server renders the same screen without the clock, so it reads as finished before JS runs.
 

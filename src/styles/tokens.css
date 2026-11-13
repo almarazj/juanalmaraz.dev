@@ -44,11 +44,10 @@
   --radius-panel: 12px;
   --radius-pill: 999px;
   --section-gap: 44px;
-  /* The page frame and footer; the hero and the content share the narrower column. */
-  --page-max: 960px;
-  --content-max: 720px;
+  /* One frame for header, page and footer; the rail and its gap sit inside it, right of the content. */
+  --page-max: 1040px;
   --rail-width: 180px;
-  --rail-gap: 60px;
+  --rail-gap: 100px;
 }
 
 :root[data-mode='dark'] {
