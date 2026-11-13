@@ -26,7 +26,7 @@ function renderFeed(list: HTMLElement, entries: FeedEntry[]) {
       span(e.m, 'm'),
       span(e.p, 'p'),
       span(String(e.s), e.s < 400 ? 's ok' : 's err'),
-      span(e.c, e.c === 'HIT' ? 'c hit' : 'c'),
+      span(e.c, e.c === 'cold' ? 'c hit' : 'c'),
       span(`${e.ms} ms`, 'ms'),
       span(formatAgo(now - e.t), 't'),
     ];

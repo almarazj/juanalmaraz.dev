@@ -87,6 +87,7 @@ const hint = (f: (typeof fields)[number]) =>
 </form>
 
 <script>
+  import { adminFetch } from '../../lib/admin/fetch';
   import { fieldsOf, fromForm, validate, type EditableCollection, type FieldErrors } from '../../lib/content/editable';
 
   const form = document.querySelector<HTMLFormElement>('[data-editor]')!;
@@ -127,7 +128,7 @@ const hint = (f: (typeof fields)[number]) =>
     button.disabled = true;
     status.textContent = 'Saving…';
     try {
-      const res = await fetch('/admin/api/save', {
+      const res = await adminFetch('/admin/api/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ collection, id, data: read.data, create: creating }),
@@ -158,7 +159,7 @@ const hint = (f: (typeof fields)[number]) =>
     let seq = 0;
     const render = async () => {
       const mine = ++seq;
-      const res = await fetch('/admin/api/preview', {
+      const res = await adminFetch('/admin/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ md: textarea.value }),

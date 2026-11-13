@@ -58,7 +58,7 @@ Used by the hero terminal, code blocks and the status tooltip; identical in both
 | `--g-line` | `#4b5159` | Dividers |
 | `--g-acc` | `#ffb15c` | Prompt `$`, strings, keywords |
 | `--g-ok` | `#7fe0a8` | 200, healthy |
-| `--g-info` | `#a9c1ff` | Cache HIT, functions |
+| `--g-info` | `#a9c1ff` | Cold start, functions |
 
 ### Tint chips
 
@@ -170,6 +170,8 @@ Lab: [palette](https://claude.ai/artifact/WKHskNWpMWx3uQCCWg23U7) (variant 8 des
 Row 1: "© 2026 Juan Almaraz · GitHub · LinkedIn · RSS" and the build stamp `vX.Y.Z | sha | branch` followed by a status dot.
 Row 2: shortcut hints and "↑ back to top".
 The dot is green, amber or red; hovering it shows a graphite `$ status` tooltip listing each service, which follows the pointer and disappears 32px from the dot center.
+Rows, in order: Website (CloudFront), App (Lambda) with p50 and cold-start ratio, Database (DynamoDB), Media (S3), Public API, Live request log; the footer adds 30 day uptime from the probe.
+When `/api/status` is unreachable the tooltip falls back to App (Lambda) and Public API as down.
 Keyboard focus and touch show the tooltip anchored above the dot.
 Lab: [footer tooltips](https://claude.ai/artifact/1nQk7yTY5htAoVzo3FFmo1) (variant 5).
 

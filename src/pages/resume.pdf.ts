@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { bucket } from '../lib/firebase';
+import { GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
+import { config, s3 } from '../lib/aws';
 import { getSingleton } from '../lib/content/repo';
 import { cacheHeaders } from '../lib/http/cache';
 
@@ -8,11 +9,14 @@ export const GET: APIRoute = async ({ rewrite }) => {
     // A missing or invalid site doc means there is no resume to serve.
     const { resumePath } = await getSingleton('site/main').catch(() => ({ resumePath: '' }));
     if (!resumePath) return rewrite('/404');
-    const file = bucket().file(resumePath);
-    if (!(await file.exists())[0]) return rewrite('/404');
-    const [pdf] = await file.download();
-    return new Response(new Uint8Array(pdf), {
+    const object = await s3().send(new GetObjectCommand({ Bucket: config().bucket, Key: resumePath })).catch((err) => {
+      if (err instanceof NoSuchKey) return null;
+      throw err;
+    });
+    if (!object?.Body) return rewrite('/404');
+    return new Response(object.Body.transformToWebStream(), {
       headers: {
+        ...(object.ContentLength !== undefined && { 'Content-Length': String(object.ContentLength) }),
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="juan-almaraz-resume.pdf"',
         ...cacheHeaders('page'),

@@ -1,16 +1,13 @@
-import { resolveFirebaseConfig } from '../firebase';
+import { resolveAwsConfig } from '../aws';
 import type { ImageRef } from '../content/schemas';
 
 export const objectPath = (base: string, width: number) => `images/${base}-${width}.webp`;
 
 export function imageUrl(ref: ImageRef, width: number, env: Record<string, string | undefined> = process.env): string {
-  const { storageBucket, emulated } = resolveFirebaseConfig(env);
   const path = objectPath(ref.base, width);
-  if (emulated) {
-    const host = env.FIREBASE_STORAGE_EMULATOR_HOST ?? '127.0.0.1:9199';
-    return `http://${host}/v0/b/${storageBucket}/o/${encodeURIComponent(path)}?alt=media`;
-  }
-  return `https://storage.googleapis.com/${storageBucket}/${path}`;
+  const { local, bucket } = resolveAwsConfig(env);
+  // Deployed, CloudFront serves /images/* from the bucket on the site's own origin.
+  return local ? `${env.AWS_ENDPOINT_URL_S3}/${bucket}/${path}` : `/${path}`;
 }
 
 /** Attributes for an <img>: the widest variant as fallback src plus a srcset of all of them. */

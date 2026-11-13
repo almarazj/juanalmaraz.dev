@@ -68,14 +68,14 @@ const site = await getRaw('site', 'main');
 </Admin>
 
 <script>
+  import { adminUpload } from '../../lib/admin/upload';
+
   const form = document.querySelector<HTMLFormElement>('[data-resume]')!;
   const status = form.querySelector<HTMLElement>('[data-resume-status]')!;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const body = new FormData(form);
-    body.set('kind', 'resume');
     status.textContent = 'Uploading…';
-    const res = await fetch('/admin/api/upload', { method: 'POST', body });
+    const res = await adminUpload('resume', new FormData(form).get('file') as File);
     status.textContent = res.ok ? 'Resume updated.' : `Upload failed: ${(await res.json().catch(() => ({}))).error ?? res.status}`;
     if (res.ok) form.reset();
   });

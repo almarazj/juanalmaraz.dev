@@ -34,6 +34,7 @@ const email = Astro.locals.adminEmail;
             <span class="who">{email}</span>
             <a href="/" target="_blank" rel="noopener">View site ↗</a>
             <button type="button" class="pill" data-sign-out>Sign out</button>
+            <span class="admin-error" role="alert" data-sign-out-error></span>
           </nav>
         )
       }
@@ -45,9 +46,19 @@ const email = Astro.locals.adminEmail;
 </html>
 
 <script>
+  import { adminFetch } from '../lib/admin/fetch';
+
   document.querySelector('[data-sign-out]')?.addEventListener('click', async () => {
-    await fetch('/admin/api/session', { method: 'DELETE' });
-    location.assign('/admin/login');
+    const error = document.querySelector<HTMLElement>('[data-sign-out-error]')!;
+    error.textContent = '';
+    try {
+      const res = await adminFetch('/admin/api/logout', { method: 'POST' });
+      if (res.ok) return location.assign((await res.json()).logoutUrl);
+    } catch {
+      // network error: reported below
+    }
+    // The session may still be alive, so never pretend the sign-out worked.
+    error.textContent = 'Sign-out failed; you are still signed in.';
   });
 </script>
 

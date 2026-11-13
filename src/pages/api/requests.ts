@@ -1,4 +1,4 @@
-import { getFeed } from '../../lib/content/repo';
+import { getFeed } from '../../lib/feed/store';
 import { jsonRoute } from '../../lib/http/json';
 
-export const GET = jsonRoute('requests', getFeed);
+export const GET = jsonRoute('requests', () => getFeed());

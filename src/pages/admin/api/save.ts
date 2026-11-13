@@ -1,9 +1,7 @@
 import type { APIRoute } from 'astro';
 import { ID, isEditable, SINGLETONS, validate } from '../../../lib/content/editable';
-import { getRaw, saveWithRevision } from '../../../lib/content/repo';
+import { AlreadyExistsError, DocumentTooLargeError, getRaw, saveWithRevision } from '../../../lib/content/repo';
 import { json } from '../../../lib/http/json';
-
-const ALREADY_EXISTS = 6;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const body = (await request.json().catch(() => null)) as
@@ -31,7 +29,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     await saveWithRevision(collection, id, doc, locals.adminEmail!, { create: create === true });
   } catch (err) {
-    if ((err as { code?: number }).code === ALREADY_EXISTS) return json({ errors: { id: 'Already exists' } }, 'private', 409);
+    if (err instanceof AlreadyExistsError) return json({ errors: { id: 'Already exists' } }, 'private', 409);
+    if (err instanceof DocumentTooLargeError) return json({ error: 'Document too large (max 350 KB)' }, 'private', 413);
     throw err;
   }
   return json({ id }, 'private');

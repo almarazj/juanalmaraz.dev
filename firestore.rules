@@ -1,9 +1,0 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Only the server reads and writes, through the Admin SDK, which bypasses rules.
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}

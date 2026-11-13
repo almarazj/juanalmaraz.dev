@@ -1,94 +1,112 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import sharp from 'sharp';
-import { auth, bucket, db } from '../../src/lib/firebase';
+import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { config, ddb, s3 } from '../../src/lib/aws';
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getRaw, listAll, listRevisions } from '../../src/lib/content/repo';
+import { signSession } from '../../src/lib/auth/session';
 
 const ADMIN = 'owner@example.com';
 const OTHER = 'someone@example.com';
-const authHost = () => process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099';
+// Must match the webServer env in playwright.config.ts.
+const SESSION_KEY = 'test-session-key-not-secret';
+const COGNITO = 'https://cognito.example.test';
 
-// Signs in through the Auth emulator's fake Google IdP, as the popup would.
-async function idToken(email: string): Promise<string> {
-  const claims = JSON.stringify({ sub: email, email, email_verified: true });
-  const res = await fetch(`http://${authHost()}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo-key`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requestUri: 'http://localhost',
-      returnSecureToken: true,
-      postBody: `id_token=${encodeURIComponent(claims)}&providerId=google.com`,
-    }),
-  });
-  expect(res.ok).toBe(true);
-  return ((await res.json()) as { idToken: string }).idToken;
+async function deletePost(slug: string) {
+  const TableName = config().table;
+  const keys = [{ pk: 'posts', sk: slug }, ...(await listRevisions('posts', slug, 100)).map((r) => ({ pk: `rev#posts#${slug}`, sk: r.id }))];
+  await Promise.all(keys.map((Key) => ddb().send(new DeleteCommand({ TableName, Key }))));
+}
+const Key = (k: string) => ({ Bucket: config().bucket, Key: k });
+
+// Cognito is not emulated: the session is the app's own token, so the test mints it like the callback does.
+async function signInAs(page: Page, email: string, key = SESSION_KEY): Promise<string> {
+  const value = signSession(email, Date.now(), key);
+  await page.context().addCookies([{ name: '__session', value, domain: 'localhost', path: '/admin', httpOnly: true, sameSite: 'Lax' }]);
+  return value;
 }
 
-async function signInAs(page: Page, email: string) {
-  const res = await page.request.post('/admin/api/session', { data: { idToken: await idToken(email) } });
-  expect(res.status()).toBe(204);
-}
+const ENDPOINTS = ['/admin/api/save', '/admin/api/restore', '/admin/api/upload', '/admin/api/preview', '/admin/api/logout'];
 
-const ENDPOINTS = ['/admin/api/save', '/admin/api/restore', '/admin/api/upload', '/admin/api/preview'];
+async function expectLockedOut(page: Page) {
+  const res = await page.goto('/admin');
+  expect(res!.status()).toBe(403);
+  expect(res!.headers()['cache-control']).toBe('no-store');
+  expect((await page.goto('/admin/posts/live-request-log'))!.status()).toBe(403);
+  for (const url of ENDPOINTS) expect((await page.request.post(url, { data: {} })).status(), url).toBe(403);
+}
 
 test.describe('non-admin', () => {
-  test('without a session every admin page and API is 403', async ({ page }) => {
-    const res = await page.goto('/admin');
-    expect(res!.status()).toBe(403);
-    expect(res!.headers()['cache-control']).toBe('no-store');
-    await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
-    expect((await page.goto('/admin/posts/live-request-log'))!.status()).toBe(403);
-    for (const url of ENDPOINTS) expect((await page.request.post(url, { data: {} })).status(), url).toBe(403);
+  test('without a session every admin page and API is 403, with a Google sign-in link', async ({ page }) => {
+    await expectLockedOut(page);
+    await page.goto('/admin');
+    await expect(page.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute('href', '/admin/api/signin');
   });
 
-  test('a non-allowlisted Google account gets no session and stays at 403', async ({ page }) => {
-    const res = await page.request.post('/admin/api/session', { data: { idToken: await idToken(OTHER) } });
-    expect(res.status()).toBe(403);
-    expect(res.headers()['set-cookie']).toBeUndefined();
+  test('a session signed with another key is 403', async ({ page }) => {
+    await signInAs(page, ADMIN, 'some-other-key');
+    await expectLockedOut(page);
+  });
 
-    // Even a valid session cookie minted for that account outside the endpoint is refused.
-    const forged = await auth().createSessionCookie(await idToken(OTHER), { expiresIn: 3_600_000 });
-    await page.context().addCookies([{ name: '__session', value: forged, url: test.info().project.use.baseURL! }]);
-    expect((await page.goto('/admin'))!.status()).toBe(403);
+  test('a valid session for a non-allowlisted email is 403 and writes nothing', async ({ page }) => {
+    await signInAs(page, OTHER);
+    await expectLockedOut(page);
     const save = await page.request.post('/admin/api/save', {
       data: { collection: 'posts', id: 'hijack', data: { title: 'x', summary: '', bodyMd: '', tags: [], status: 'published' } },
     });
     expect(save.status()).toBe(403);
-    expect((await db().doc('posts/hijack').get()).exists).toBe(false);
+    expect(await getRaw('posts', 'hijack')).toBeNull();
   });
 
-  test('a non-allowlisted account signing in from the page is told it is not allowed', async ({ page }) => {
-    await page.goto('/admin/login');
-    const popup = page.waitForEvent('popup');
-    await page.getByRole('button', { name: 'Sign in with Google' }).click();
-    await addEmulatorAccount(await popup, OTHER);
-    await expect(page.getByRole('alert')).toHaveText(`${OTHER} is not allowed here.`);
+  test('sign-in redirects to Cognito with PKCE and a callback with another state is refused', async ({ page }) => {
+    const res = await page.request.get('/admin/api/signin', { maxRedirects: 0 });
+    expect(res.status()).toBe(302);
+    const location = new URL(res.headers()['location']);
+    expect(`${location.origin}${location.pathname}`).toBe(`${COGNITO}/oauth2/authorize`);
+    expect(location.searchParams.get('identity_provider')).toBe('Google');
+    expect(location.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(res.headers()['set-cookie']).toMatch(/^__oauth=/);
+
+    const callback = await page.request.get(`/admin/api/callback?code=x&state=forged-${location.searchParams.get('state')}`, { maxRedirects: 0 });
+    expect(callback.status()).toBe(403);
+    expect(callback.headers()['set-cookie'] ?? '').not.toContain('__session=');
   });
-});
-
-// The emulator's account picker renders before its click handlers attach, so the first click can be lost.
-async function addEmulatorAccount(popup: Page, email: string) {
-  await expect(async () => {
-    await popup.getByRole('button', { name: /add new account/i }).click({ timeout: 1000 });
-    await expect(popup.getByLabel('Email')).toBeVisible({ timeout: 1000 });
-  }).toPass();
-  await popup.getByLabel('Email').fill(email);
-  await popup.getByRole('button', { name: /sign in with google/i }).click();
-}
-
-test('the owner signs in from the page, lands on /admin and signs out', async ({ page }) => {
-  await page.goto('/admin');
-  const popup = page.waitForEvent('popup');
-  await page.getByRole('button', { name: 'Sign in with Google' }).click();
-  await addEmulatorAccount(await popup, ADMIN);
-  await expect(page.getByRole('heading', { name: 'Content', level: 1 })).toBeVisible();
-  await expect(page.getByText(ADMIN)).toBeVisible();
-
-  await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page).toHaveURL(/\/admin\/login$/);
-  expect((await page.goto('/admin'))!.status()).toBe(403);
 });
 
 test.describe('owner', () => {
-  test.beforeEach(({ page }) => signInAs(page, ADMIN));
+  let session: string;
+  test.beforeEach(async ({ page }) => {
+    session = await signInAs(page, ADMIN);
+  });
+
+  // Logout revokes every session, so this file relies on running in one worker (the default per file).
+  test('signs out through Cognito, which revokes the previous session', async ({ page }) => {
+    await page.route(`${COGNITO}/**`, (route) => route.fulfill({ contentType: 'text/plain', body: 'cognito logout' }));
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: 'Content', level: 1 })).toBeVisible();
+    await expect(page.getByText(ADMIN)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    const loginUrl = `${test.info().project.use.baseURL}/admin/login`;
+    await expect(page).toHaveURL(`${COGNITO}/logout?client_id=e2e-client&logout_uri=${encodeURIComponent(loginUrl)}`);
+    expect((await page.context().cookies()).some((c) => c.name === '__session')).toBe(false);
+
+    await page.context().addCookies([{ name: '__session', value: session, domain: 'localhost', path: '/admin' }]);
+    await expectLockedOut(page);
+  });
+
+  test('a failed sign-out says so and stays on the page', async ({ page }) => {
+    const alert = page.getByRole('alert').filter({ hasText: 'Sign-out failed; you are still signed in.' });
+    for (const fail of [(r: Route) => r.fulfill({ status: 500, body: 'boom' }), (r: Route) => r.abort()]) {
+      await page.unrouteAll();
+      await page.route('**/admin/api/logout', fail);
+      await page.goto('/admin');
+      await expect(alert).toHaveCount(0);
+      await page.getByRole('button', { name: 'Sign out' }).click();
+      await expect(alert).toBeVisible();
+      await expect(page).toHaveURL(/\/admin$/);
+    }
+  });
 
   test('edits a post with live preview, saves a draft, publishes and restores a revision', async ({ page }) => {
     const slug = `e2e-${Date.now()}`;
@@ -133,20 +151,20 @@ test.describe('owner', () => {
       await page.goto('/writing');
       await expect(page.getByText(title)).toHaveCount(0);
     } finally {
-      await db().recursiveDelete(db().doc(`posts/${slug}`));
+      await deletePost(slug);
     }
   });
 
   test('creating an id that exists is refused inline', async ({ page }) => {
     await page.goto('/admin/education/new');
-    const existing = (await db().collection('education').limit(1).get()).docs[0].id;
+    const existing = (await listAll('education'))[0].id;
     await page.getByLabel('id', { exact: true }).fill(existing);
     await page.getByLabel('title').fill('Dup');
     await page.getByLabel('school').fill('Dup');
     await page.getByLabel('start').fill('2020-01');
     await page.getByRole('button', { name: 'Create' }).click();
     await expect(page.locator('#err-id')).toHaveText('Already exists');
-    expect((await db().doc(`education/${existing}`).get()).data()!.title).not.toBe('Dup');
+    expect((await getRaw('education', existing))!.title).not.toBe('Dup');
   });
 
   test('uploads an image and gets three WebP variants', async ({ page }) => {
@@ -161,16 +179,16 @@ test.describe('owner', () => {
     try {
       expect(ref).toMatchObject({ widths: [480, 960, 1600], alt: 'An orange banner' });
       expect(ref.base).toMatch(/^uploads\/e2e-banner-[a-z0-9]+$/);
-      for (const w of ref.widths) expect((await bucket().file(`images/${ref.base}-${w}.webp`).exists())[0]).toBe(true);
+      for (const w of ref.widths) await s3().send(new HeadObjectCommand(Key(`images/${ref.base}-${w}.webp`)));
       await expect(form.locator('[data-upload-preview]')).toHaveJSProperty('naturalWidth', 960);
     } finally {
-      await Promise.all(ref.widths.map((w) => bucket().file(`images/${ref.base}-${w}.webp`).delete({ ignoreNotFound: true })));
+      await Promise.all(ref.widths.map((w) => s3().send(new DeleteObjectCommand(Key(`images/${ref.base}-${w}.webp`)))));
     }
   });
 
   test('uploads a new resume and /resume.pdf serves it', async ({ page }) => {
-    const { resumePath } = (await db().doc('site/main').get()).data() as { resumePath: string };
-    const [original] = await bucket().file(resumePath).download();
+    const { resumePath } = (await getRaw('site', 'main')) as { resumePath: string };
+    const original = Buffer.from(await (await s3().send(new GetObjectCommand(Key(resumePath)))).Body!.transformToByteArray());
     const pdf = Buffer.from(`%PDF-1.4\n% e2e-resume-${Date.now()}\n%%EOF\n`);
     try {
       await page.goto('/admin');
@@ -185,7 +203,7 @@ test.describe('owner', () => {
       await page.getByRole('button', { name: 'Upload resume' }).click();
       await expect(page.getByText(/Upload failed: Not a PDF/)).toBeVisible();
     } finally {
-      await bucket().file(resumePath).save(original, { contentType: 'application/pdf' });
+      await s3().send(new PutObjectCommand({ ...Key(resumePath), Body: original, ContentType: 'application/pdf' }));
     }
   });
 });

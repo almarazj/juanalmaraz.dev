@@ -18,7 +18,43 @@ test('tail pane lists seeded requests with relative times', async ({ page }) => 
   const rows = page.locator('[data-feed] li');
   await expect(rows.first()).toBeVisible();
   await expect(rows).toHaveCount(8);
-  await expect(rows.first()).toContainText(/(GET|POST|HEAD)\s+\/\S*\s+\d{3}\s+(HIT|MISS)\s+\d+ ms\s+\d+ (s|min|h|d) ago/);
+  await expect(rows.first()).toContainText(/(GET|POST|HEAD)\s+\/\S*\s+\d{3}\s+(cold|warm)\s+\d+ ms\s+\d+ (s|min|h|d) ago/);
+});
+
+test('tail pane renders cold and warm rows', async ({ page }) => {
+  const t = Date.now();
+  const entries = [
+    { m: 'GET', p: '/', s: 200, c: 'cold', ms: 480, t },
+    { m: 'GET', p: '/writing', s: 200, c: 'warm', ms: 12, t: t - 1000 },
+  ];
+  await page.route('**/api/requests', (route) => route.fulfill({ json: { entries, updatedAt: t, stats: {} } }));
+  await page.goto('/');
+  const rows = page.locator('[data-feed] li');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText(/\scold\s/);
+  await expect(rows.nth(0).locator('.c')).toHaveClass(/hit/);
+  await expect(rows.nth(1)).toContainText(/\swarm\s/);
+});
+
+test('a visited page is recorded by the middleware and shows up in the tail', async ({ page, request }) => {
+  // /api/experience is allowlisted but not in the seed, so a row for it can only come from the middleware.
+  expect((await request.get('/api/experience')).ok()).toBe(true);
+  const feed = await (await request.get('/api/requests')).json();
+  expect(feed.entries).toContainEqual(expect.objectContaining({ m: 'GET', p: '/api/experience', s: 200, c: expect.stringMatching(/^(cold|warm)$/) }));
+
+  // Parallel workers can push the row past the pane's 8 rows before the page loads, so visit again until it is fresh.
+  const row = page.locator('[data-feed] li').filter({ hasText: /\/api\/experience\s+200/ }).first();
+  await expect(async () => {
+    expect((await request.get('/api/experience')).ok()).toBe(true);
+    await page.goto('/');
+    await expect(row).toBeVisible({ timeout: 1000 });
+  }).toPass();
+});
+
+test('an unknown path is recorded as a 404 unknown-path entry', async ({ request }) => {
+  expect((await request.get('/wp-login.php')).status()).toBe(404);
+  const feed = await (await request.get('/api/requests')).json();
+  expect(feed.entries).toContainEqual(expect.objectContaining({ p: '404 · unknown path', s: 404 }));
 });
 
 test('does not poll /api/requests while the terminal is out of view', async ({ page }) => {

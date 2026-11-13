@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { requireAdmin, type VerifySession } from '../../src/lib/auth/admin';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { requireAdmin, revokeSessions, type VerifySession } from '../../src/lib/auth/admin';
+import { signSession } from '../../src/lib/auth/session';
+import { resetTable } from '../../scripts/local-aws';
+import { POST as logout } from '../../src/pages/admin/api/logout';
 
 const ADMIN = 'owner@example.com';
 const req = (cookie?: string) => new Request('http://x/admin', { headers: cookie ? { cookie } : {} });
@@ -46,5 +49,48 @@ describe('requireAdmin', () => {
   it('fails closed when ADMIN_EMAIL is unset', async () => {
     expect(await status(requireAdmin(req('__session=c'), { verify: claims(''), adminEmail: '' }))).toBe(403);
     expect(await status(requireAdmin(req('__session=c'), { verify: claims(ADMIN), adminEmail: undefined }))).toBe(403);
+  });
+});
+
+describe('live session verifier', () => {
+  const KEY = 'test-session-key';
+  const live = (email: string, iat = Date.now(), key = KEY) => req(`__session=${encodeURIComponent(signSession(email, iat, key))}`);
+
+  beforeAll(() => vi.stubEnv('SESSION_KEY', KEY));
+  beforeEach(() => resetTable());
+
+  it('passes a valid owner session', async () => {
+    await expect(requireAdmin(live(ADMIN), { adminEmail: ADMIN })).resolves.toEqual({ email: ADMIN });
+  });
+
+  it('rejects a valid session for another email', async () => {
+    expect(await status(requireAdmin(live('other@example.com'), { adminEmail: ADMIN }))).toBe(403);
+  });
+
+  it('rejects a session signed with another key, or expired', async () => {
+    expect(await status(requireAdmin(live(ADMIN, Date.now(), 'other-key'), { adminEmail: ADMIN }))).toBe(403);
+    expect(await status(requireAdmin(live(ADMIN, Date.now() - 5 * 86_400_000 - 1), { adminEmail: ADMIN }))).toBe(403);
+  });
+
+  it('rejects a session issued before sessionsValidAfter', async () => {
+    const before = live(ADMIN, Date.now() - 1000);
+    await revokeSessions(Date.now());
+    expect(await status(requireAdmin(before, { adminEmail: ADMIN }))).toBe(403);
+    await expect(requireAdmin(live(ADMIN, Date.now() + 1), { adminEmail: ADMIN })).resolves.toEqual({ email: ADMIN });
+  });
+
+  it('logout revokes every session, clears the cookie and points at Cognito logout', async () => {
+    vi.stubEnv('SITE_URL', 'https://juanalmaraz.dev');
+    vi.stubEnv('COGNITO_DOMAIN', 'https://jalma.auth.us-east-2.amazoncognito.com');
+    vi.stubEnv('COGNITO_CLIENT_ID', 'client');
+    const before = live(ADMIN, Date.now() - 1);
+    const res = await (logout as unknown as () => Promise<Response>)();
+    expect(res.status).toBe(200);
+    expect(res.headers.get('set-cookie')).toBe('__session=; Path=/admin; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+    const { logoutUrl } = await res.json();
+    expect(logoutUrl).toBe(
+      'https://jalma.auth.us-east-2.amazoncognito.com/logout?client_id=client&logout_uri=https%3A%2F%2Fjuanalmaraz.dev%2Fadmin%2Flogin',
+    );
+    expect(await status(requireAdmin(before, { adminEmail: ADMIN }))).toBe(403);
   });
 });

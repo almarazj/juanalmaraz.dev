@@ -155,9 +155,9 @@ test('processed images load', async ({ page }) => {
   expect(broken).toBe(0);
 });
 
-test('hero shows the site photo from Storage', async ({ page }) => {
+test('hero shows the site photo from S3', async ({ page }) => {
   await page.goto('/');
   const photo = page.locator('#hero img.photo');
-  await expect(photo).toHaveAttribute('src', /images%2Fabout%2Fprofile-418\.webp/);
+  await expect(photo).toHaveAttribute('src', /images\/about\/profile-418\.webp/);
   expect(await photo.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 });

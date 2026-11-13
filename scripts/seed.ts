@@ -1,26 +1,27 @@
-// Seeds the Firestore emulator. SAMPLE-ONLY values are marked; replace real content via /admin (Task 15).
-import { db } from '../src/lib/firebase';
-import { saveFeed, saveWithRevision, type Collection } from '../src/lib/content/repo';
+// Seeds local DynamoDB and S3. SAMPLE-ONLY values are marked; replace real content via /admin.
+import { putEntry } from '../src/lib/feed/store';
+import { saveWithRevision, type Collection } from '../src/lib/content/repo';
 import {
   AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema,
   FeedEntrySchema, PostSchema, ProjectSchema, SiteSchema,
 } from '../src/lib/content/schemas';
-import { bucket } from '../src/lib/firebase';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { config, s3 } from '../src/lib/aws';
 import { processImage } from '../src/lib/images/process';
 import { readFile } from 'node:fs/promises';
 import type { ZodType } from 'zod';
 
-process.env.FIRESTORE_EMULATOR_HOST ??= 'localhost:8080';
-process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= '127.0.0.1:9199';
+process.env.AWS_ENDPOINT_URL_DYNAMODB ??= 'http://localhost:8000';
+process.env.AWS_ENDPOINT_URL_S3 ??= 'http://localhost:9000';
 
-// SAMPLE-ONLY: stand-in images from the old site's checkout.
-const oldSite = new URL('../../almarazj.github.io/assets/img/', import.meta.url).pathname;
+// SAMPLE-ONLY: stand-in images copied from the old site.
+const oldSite = new URL('../tests/fixtures/images/', import.meta.url).pathname;
 const img = (file: string, base: string, alt: string) => readFile(oldSite + file).then((b) => processImage(b, base, alt));
 const [rirGui, pv, render, mpu, profile] = await Promise.all([
-  img('portfolio/ima/rir-gui.png', 'projects/rir-gui', 'Impulse response analysis GUI'),
-  img('portfolio/dsp/pv.png', 'projects/pv', 'Phase vocoder block diagram'),
-  img('portfolio/ce2/render.png', 'projects/render', 'Render of the compressor enclosure'),
-  img('portfolio/ayp1/mpu6050.jpg', 'projects/mpu6050', 'MPU6050 accelerometer on a test rig'),
+  img('rir-gui.png', 'projects/rir-gui', 'Impulse response analysis GUI'),
+  img('pv.png', 'projects/pv', 'Phase vocoder block diagram'),
+  img('render.png', 'projects/render', 'Render of the compressor enclosure'),
+  img('mpu6050.jpg', 'projects/mpu6050', 'MPU6050 accelerometer on a test rig'),
   img('profile-img.png', 'about/profile', 'Juan Almaraz'),
 ]);
 
@@ -38,7 +39,7 @@ const offsets = objs.map((o, i) => { const at = pdf.length; pdf += `${i + 1} 0 o
 const xref = pdf.length;
 pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
 pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-await bucket().file('resume/juan-almaraz.pdf').save(pdf, { contentType: 'application/pdf' });
+await s3().send(new PutObjectCommand({ Bucket: config().bucket, Key: 'files/resume/juan-almaraz.pdf', Body: pdf, ContentType: 'application/pdf' }));
 
 const now = Date.UTC(2026, 10, 1);
 const by = 'seed';
@@ -59,9 +60,9 @@ const project = (title: string, group: 'backend' | 'engineering', year: number, 
   title, group, year, summary: `${title} (sample summary).`, stack: [], links: [], confidential: false, order, status: 'published', ...extra,
 });
 const projects = [
-  ['juanalmaraz-dev', project('juanalmaraz.dev', 'backend', 2026, 1, { stack: ['Astro', 'Firestore', 'Cloud Run'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }] })],
-  ['document-ingestion', project('Document ingestion pipeline', 'backend', 2025, 2, { confidential: true, stack: ['Node.js', 'Cloud Tasks', 'Postgres'] })],
-  ['webhook-relay', project('Webhook relay', 'backend', 2025, 3, { stack: ['Node.js', 'Pub/Sub'] })],
+  ['juanalmaraz-dev', project('juanalmaraz.dev', 'backend', 2026, 1, { stack: ['Astro', 'DynamoDB', 'Lambda'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }] })],
+  ['document-ingestion', project('Document ingestion pipeline', 'backend', 2025, 2, { confidential: true, stack: ['Node.js', 'SQS', 'Postgres'] })],
+  ['webhook-relay', project('Webhook relay', 'backend', 2025, 3, { stack: ['Node.js', 'SNS'] })],
   ['room-impulse-response', project('Room impulse response tool', 'engineering', 2023, 4, { stack: ['Python', 'Acoustics'], image: rirGui })],
   ['phase-vocoder', project('Phase vocoder time-stretching', 'engineering', 2022, 5, { stack: ['Python', 'DSP'], image: pv })],
   ['compressor-hardware', project('Compressor hardware design', 'engineering', 2022, 6, { stack: ['Electronics'], image: render })],
@@ -106,7 +107,7 @@ const about = {
 const site = {
   roleLine: 'Backend Engineer · Node.js · GCP',
   lede: 'I build APIs and data pipelines. Before software I studied sound engineering, so I still think about systems as signals.',
-  resumePath: 'resume/juan-almaraz.pdf',
+  resumePath: 'files/resume/juan-almaraz.pdf',
   photo: profile,
   now: { building: 'juanalmaraz.dev', reading: 'Designing Data-Intensive Applications' },
 };
@@ -142,7 +143,7 @@ ${filler(10)}
 `;
 const posts = [
   ['terraform-one-person', { title: 'Terraform for a one-person project', summary: 'Why a solo site still gets infrastructure as code.', bodyMd: `## Why bother\n\n${filler(8)}\n`, tags: ['terraform'], status: 'published', publishedAt: now - 86_400_000 * 7, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 1 } }],
-  ['live-request-log', { title: 'A live request log on the GCP free tier', summary: 'How the hero terminal tails real traffic without leaving the free tier.', bodyMd: post2Body, tags: ['gcp', 'firestore'], status: 'published', publishedAt: now, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 2 } }],
+  ['live-request-log', { title: 'A live request log on the GCP free tier', summary: 'How the hero terminal tails real traffic without leaving the free tier.', bodyMd: post2Body, tags: ['aws', 'dynamodb'], status: 'published', publishedAt: now, updatedAt: now, series: { id: 'building-site', title: 'Building juanalmaraz.dev', part: 2 } }],
   ['draft-post', { title: 'Draft post', summary: 'Work in progress.', bodyMd: 'Sample draft.', tags: [], status: 'draft', publishedAt: now, updatedAt: now }],
 ] as const;
 
@@ -151,21 +152,21 @@ for (const [id, d] of projects) await put('projects', id, ProjectSchema, d);
 for (const e of education) { const { id, ...d } = e; await put('education', id, EducationSchema, d); }
 for (const [id, d] of certificates) await put('certificates', id, CertificateSchema, d);
 for (const [id, d] of posts) await put('posts', id, PostSchema, d);
-await db().doc('about/main').set(AboutSchema.parse(about));
-await db().doc('site/main').set(SiteSchema.parse(site));
+await saveWithRevision('about', 'main', AboutSchema.parse(about), by);
+await saveWithRevision('site', 'main', SiteSchema.parse(site), by);
 // SAMPLE-ONLY: fake traffic so the hero tail has rows before real logs arrive; times are relative to seeding.
 const at = Date.now();
 const feed = [
-  ['GET', '/', 200, 'HIT', 12, 4],
-  ['GET', '/api/me', 200, 'HIT', 9, 11],
-  ['GET', '/writing/live-request-log', 200, 'MISS', 184, 26],
-  ['GET', '/api/now', 200, 'HIT', 7, 38],
-  ['HEAD', '/', 200, 'HIT', 5, 52],
-  ['GET', '/rss.xml', 200, 'MISS', 96, 75],
-  ['GET', '404 · unknown path', 404, 'MISS', 41, 130],
-  ['GET', '/writing', 200, 'HIT', 11, 190],
-  ['GET', '/api/stack', 200, 'MISS', 132, 260],
-  ['GET', '/resume.pdf', 200, 'HIT', 15, 400],
+  ['GET', '/', 200, 'warm', 12, 4],
+  ['GET', '/api/me', 200, 'warm', 9, 11],
+  ['GET', '/writing/live-request-log', 200, 'cold', 184, 26],
+  ['GET', '/api/now', 200, 'warm', 7, 38],
+  ['HEAD', '/', 200, 'warm', 5, 52],
+  ['GET', '/rss.xml', 200, 'cold', 96, 75],
+  ['GET', '404 · unknown path', 404, 'cold', 41, 130],
+  ['GET', '/writing', 200, 'warm', 11, 190],
+  ['GET', '/api/stack', 200, 'cold', 132, 260],
+  ['GET', '/resume.pdf', 200, 'warm', 15, 400],
 ] as const;
-await saveFeed(feed.map(([m, p, s, c, ms, ago]) => FeedEntrySchema.parse({ m, p, s, c, ms, t: at - ago * 1000 })), at);
+for (const [m, p, s, c, ms, ago] of feed) await putEntry(FeedEntrySchema.parse({ m, p, s, c, ms, t: at - ago * 1000 }));
 console.log('seeded');
