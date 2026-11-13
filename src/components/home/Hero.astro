@@ -15,6 +15,19 @@ const { terminal } = Astro.props;
 
 <style>
   .hero {
+    position: relative;
+    isolation: isolate;
     padding-block: 104px var(--section-gap);
+  }
+  /* Gives the translucent terminal something to show through. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    /* Hugs the terminal, so the glow peeks out just past its sides. */
+    inset: 80px max(0px, 50% - var(--hero-term-width) / 2 - 60px) 20px;
+    z-index: -1;
+    background: var(--hero-glow);
+    filter: blur(28px);
+    pointer-events: none;
   }
 </style>

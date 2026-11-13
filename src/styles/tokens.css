@@ -32,6 +32,13 @@
   --tty-err: #ff9d9d;
   --tty-mag: #e2acff;
   --tty-cyan: #8adfe6;
+  /* The hero window is translucent dark glass over a glow in the section colors; both shift with the mode. */
+  --tty-glass: rgba(20, 22, 27, 0.8);
+  --tty-edge: rgba(255, 255, 255, 0.25);
+  --tty-shadow: 0 18px 44px rgba(20, 24, 30, 0.22);
+  --hero-glow: radial-gradient(circle at 10% 35%, rgba(36, 87, 197, 0.4), transparent 34%),
+    radial-gradient(circle at 90% 22%, rgba(194, 65, 12, 0.34), transparent 32%),
+    radial-gradient(circle at 50% 95%, rgba(122, 63, 184, 0.3), transparent 36%);
 
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -46,6 +53,7 @@
   --section-gap: 44px;
   /* One frame for header, page and footer; the rail and its gap sit inside it, right of the content. */
   --page-max: 1040px;
+  --hero-term-width: 800px;
   --rail-width: 180px;
   --rail-gap: 100px;
 }
@@ -68,4 +76,11 @@
   --c-education: #7cc79a;
   --c-writing: #c49af0;
   --c-about: #f07aae;
+
+  --tty-glass: rgba(36, 39, 46, 0.55);
+  --tty-edge: rgba(255, 255, 255, 0.08);
+  --tty-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  --hero-glow: radial-gradient(circle at 10% 35%, rgba(134, 168, 255, 0.3), transparent 34%),
+    radial-gradient(circle at 90% 22%, rgba(251, 138, 76, 0.24), transparent 32%),
+    radial-gradient(circle at 50% 95%, rgba(196, 154, 240, 0.24), transparent 36%);
 }

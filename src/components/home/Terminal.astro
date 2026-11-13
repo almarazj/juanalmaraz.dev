@@ -15,6 +15,14 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
 ---
 
 <div class="term" data-terminal>
+  <div class="hb" aria-hidden="true">
+    <span>juan@ubuntu: ~</span>
+    <span class="btns">
+      <span><svg viewBox="0 0 8 8"><path d="M1 4h6"></path></svg></span>
+      <span><svg viewBox="0 0 8 8"><rect x="1.2" y="1.2" width="5.6" height="5.6"></rect></svg></span>
+      <span><svg viewBox="0 0 8 8"><path d="M1.5 1.5l5 5M6.5 1.5l-5 5"></path></svg></span>
+    </span>
+  </div>
   <div class="sb" data-sb>
     <div class="out" data-out role="log" set:html={screen} />
     <div class="line">
@@ -57,10 +65,17 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
     --t-sel: var(--tty-sel);
     position: relative;
     display: flex;
+    flex-direction: column;
     min-width: 0;
-    height: 440px;
+    max-width: var(--hero-term-width);
+    height: 474px;
+    margin-inline: auto;
+    overflow: hidden;
     border-radius: var(--radius-panel);
-    background: var(--t-bg);
+    background: var(--tty-glass);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+    box-shadow: inset 0 0 0 1px var(--tty-edge), var(--tty-shadow);
     color: var(--t-fg);
     font: 400 13.5px/1.6 var(--font-mono);
     cursor: text;
@@ -69,8 +84,50 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+  @media (prefers-reduced-transparency: reduce) {
+    .term {
+      background: var(--t-bg);
+    }
+  }
+  /* A GNOME-style header bar; the buttons are decoration. */
+  .term .hb {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font: 600 12.5px/1 var(--font-sans);
+    color: color-mix(in srgb, var(--t-fg) 85%, transparent);
+    cursor: default;
+    user-select: none;
+  }
+  .term .btns {
+    position: absolute;
+    inset: 0 12px 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .term .btns span {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .term .btns svg {
+    width: 8px;
+    height: 8px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+  }
   .term .sb {
     flex: 1;
+    min-height: 0;
     min-width: 0;
     overflow: hidden auto;
     padding: 18px 22px;
@@ -79,7 +136,7 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
     transition: background-color 120ms;
   }
   .term.bell .sb {
-    background: color-mix(in srgb, var(--t-fg) 7%, var(--t-bg));
+    background: color-mix(in srgb, var(--t-fg) 7%, transparent);
   }
   .term .blk,
   .term .echo,
@@ -198,7 +255,7 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
   @media (max-width: 680px) {
     /* Tall enough for neofetch on a typical phone, never taller than the screen. */
     .term {
-      height: min(600px, 85svh);
+      height: min(634px, 85svh);
       font-size: 12.5px;
     }
     .term .sb {

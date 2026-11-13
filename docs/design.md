@@ -62,7 +62,9 @@ Used by code blocks and the status tooltip; identical in both modes.
 
 ### Tty (hero terminal)
 
-The hero terminal is a near-black screen, identical in both modes; accent, ok and info reuse the graphite values.
+The hero terminal is a Linux window: a header bar with the title `juan@ubuntu: ~` and minimize, maximize and close buttons, over a dark translucent glass (`--tty-glass`, blur 22px) that sits on a blurred glow in the experience, projects and writing colors (`--hero-glow`), 60px wider than the window on each side so it peeks out past its edges.
+The glass, its edge, shadow and glow change with the mode; text colors stay the same, and accent, ok and info reuse the graphite values.
+With `prefers-reduced-transparency` the window falls back to the solid `--tty-bg`.
 
 | Token | Value | Use |
 |---|---|---|
@@ -90,6 +92,7 @@ IBM Plex, loaded from Google Fonts with system fallbacks.
 |---|---|---|
 | UI and home body | IBM Plex Sans 400/500/600 | 16px / 1.6 |
 | Item titles (roles, projects, degrees, posts, answers) | IBM Plex Serif 600 | 16 to 19px / 1.3 |
+| Name in the header | IBM Plex Serif 600 | 18px / 1 |
 | Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.08em | 13px |
 | Dates, meta, data, keys | IBM Plex Mono 400/500 | 12 to 12.5px |
 | Post body | IBM Plex Serif 400 | 18px / 1.72, measure 68ch |
@@ -105,7 +108,7 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.
 - Header, page and footer share one 1040px frame, centered in the viewport; their edges line up.
-- The hero terminal spans the whole frame.
+- The hero terminal is 800px wide, centered in the frame, so the glow shows around it.
 - Below it the content fills the frame left of the side index (180px), with a 100px gap; the side index ends at the frame's right edge.
 - Under 960px the side index hides and the content takes the full width.
 - Breakpoints: 680px (phone), 960px (rail hides).
@@ -117,12 +120,13 @@ Each row names the chosen variant; the link opens the lab where it was chosen.
 ### Header
 
 Always visible: the name and a centered "Search or jump to... /" field that opens the palette.
+Its bar is light glass: the page background at 72% over a 14px blur, solid under `prefers-reduced-transparency`.
 Once a section is in view it adds `/ <current section>` in the section color, and after the hero scrolls away it gains a bottom border.
 Labs: [header](https://claude.ai/artifact/LxLYdHMRYY8WJktsCJ4utF) (variants 3 and 4).
 
 ### Hero
 
-The hero is one terminal as wide as the page frame (440px tall; on phones `min(600px, 85svh)`), with a visually hidden h1 carrying the name.
+The hero is one terminal window 800px wide and centered (474px tall with its 34px header bar; on phones `min(634px, 85svh)`), with a visually hidden h1 carrying the name.
 It opens straight on `juan@ubuntu:~$ neofetch` and its output: a spinning 3D "JA" in ASCII on the left and, on the right, Role, Uptime (years in software engineering, from `careerStart`), Stack, Based (with Buenos Aires local time), Education, Languages, Links (resume, github, linkedin) and Packages (published projects and posts), then the color swatches and "type help to look around".
 The server renders the same screen without the clock, so it reads as finished before JS runs.
 
