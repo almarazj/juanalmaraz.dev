@@ -9,7 +9,7 @@ Every visual decision below serves two things: easy reading and visible engineer
 - Reading comes first: one column of text, generous line height, no decoration that competes with content.
 - Each content type looks different at a glance: its own color, icon and component.
 - Backend is shown, not described: the terminal, the API console and the status are real data.
-- Light mode is the default; dark mode is a manual toggle, never automatic.
+- The first visit follows the system's light or dark scheme, and keeps following it until the reader clicks the header's moon/sun toggle; that pick is stored and wins from then on.
 - Motion is small (250 ms or less) and always disabled under `prefers-reduced-motion`.
 - English only, with `lang="en"` so browsers offer translation.
 
@@ -123,6 +123,7 @@ The home's sections, in order: Work experience, Education, Technologies, Project
 ### Header
 
 Always visible: the name and a centered "Search or jump to... /" field that opens the palette.
+On the right, a bare icon with no box switches the mode: a moon in light mode, a sun in dark mode (the icon names what a click switches to).
 Its bar is light glass: the page background at 72% over a 14px blur, solid under `prefers-reduced-transparency`.
 Once a section is in view it adds `/ <current section>` in the section color, and after the hero scrolls away it gains a bottom border.
 Labs: [header](https://claude.ai/artifact/LxLYdHMRYY8WJktsCJ4utF) (variants 3 and 4).

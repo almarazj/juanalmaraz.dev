@@ -38,10 +38,14 @@ const fonts =
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title="Juan Almaraz" href="/rss.xml" />
     <script is:inline>
+      let mode = null;
       try {
-        if (localStorage.getItem('mode') === 'dark') document.documentElement.dataset.mode = 'dark';
+        mode = localStorage.getItem('mode');
       } catch {
-        // storage blocked: stay light
+        // storage blocked: follow the system
+      }
+      if (mode ? mode === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.dataset.mode = 'dark';
       }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
