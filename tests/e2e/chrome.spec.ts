@@ -14,6 +14,9 @@ test('header shows name and search at the top and adds the section after the her
   await expect(header.getByText('Juan Almaraz')).toBeVisible();
   await expect(header.getByText('/ experience')).toBeVisible();
   await expect(header.getByRole('button', { name: /search or jump to/i })).toBeVisible();
+  // Descenders (the p in experience) must fit inside the clipped label box.
+  const label = header.locator('[data-header-section]');
+  expect(await label.evaluate((el) => el.scrollHeight - el.getBoundingClientRect().height)).toBeLessThanOrEqual(0.5);
 });
 
 test('header name goes home from a post and only scrolls up on the home', async ({ page }) => {
