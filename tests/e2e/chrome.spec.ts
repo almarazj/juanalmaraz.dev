@@ -16,6 +16,16 @@ test('header shows name and search at the top and adds the section after the her
   await expect(header.getByRole('button', { name: /search or jump to/i })).toBeVisible();
 });
 
+test('header name goes home from a post and only scrolls up on the home', async ({ page }) => {
+  await page.goto('/writing/terraform-one-person');
+  await page.getByRole('banner').getByRole('link', { name: 'Juan Almaraz' }).click();
+  await expect(page).toHaveURL('/');
+  await page.evaluate(() => scrollTo(0, 800));
+  await page.getByRole('banner').getByRole('link', { name: 'Juan Almaraz' }).click();
+  await expect(page).toHaveURL('/#top');
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+});
+
 test('rail entry click scrolls, marks it on, and expands only the current section', async ({ page }) => {
   await page.goto('/');
   const rail = page.getByRole('navigation', { name: 'On this page' });

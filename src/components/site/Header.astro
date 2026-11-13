@@ -1,10 +1,13 @@
 ---
 import ThemeToggle from './ThemeToggle.astro';
+
+// On the home a reload would wipe the terminal session, so it only scrolls up.
+const home = Astro.url.pathname === '/' ? '#top' : '/';
 ---
 
 <header class="site-header" data-header>
   <div class="who">
-    <a class="name" href="#top">Juan Almaraz</a>
+    <a class="name" href={home}>Juan Almaraz</a>
     <span class="section" data-header-section></span>
   </div>
   <button type="button" class="search" data-palette-open aria-label="Search or jump to">
@@ -26,9 +29,16 @@ import ThemeToggle from './ThemeToggle.astro';
     height: 56px;
     /* Lines its edges up with the page frame below. */
     padding-inline: max(var(--gutter-l), (100% - var(--page-max)) / 2) max(var(--gutter-r), (100% - var(--page-max)) / 2);
-    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
     border-bottom: 1px solid transparent;
     transition: border-color 150ms;
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .site-header {
+      background: var(--bg);
+    }
   }
   .site-header[data-stuck] {
     border-bottom-color: var(--line);
@@ -41,7 +51,7 @@ import ThemeToggle from './ThemeToggle.astro';
   }
   .name {
     flex: none;
-    font-weight: 600;
+    font: 600 18px/1 var(--font-serif);
     color: var(--fg);
     text-decoration: none;
     white-space: nowrap;
