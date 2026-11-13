@@ -62,7 +62,7 @@ Used by code blocks and the status tooltip; identical in both modes.
 
 ### Tty (hero terminal)
 
-The hero terminal is a Linux window: a header bar with the title `juan@ubuntu: ~` and minimize, maximize and close buttons, over a dark translucent glass (`--tty-glass`, blur 22px) that sits on a blurred glow in the experience, projects and writing colors (`--hero-glow`), 60px wider than the window on each side so it peeks out past its edges.
+The hero terminal is a Linux window: a header bar with the title `juan@ubuntu: ~` and minimize, maximize and close buttons, over a dark translucent glass (`--tty-glass`, blur 22px) that sits on a blurred glow in the experience, projects and writing colors (`--hero-glow`), 24px wider than the window on each side and starting 24px below its top edge, so it hugs the window and fades out before the header.
 The glass, its edge, shadow and glow change with the mode; text colors stay the same, and accent, ok and info reuse the graphite values.
 With `prefers-reduced-transparency` the window falls back to the solid `--tty-bg`.
 

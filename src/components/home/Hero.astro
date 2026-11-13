@@ -23,11 +23,11 @@ const { terminal } = Astro.props;
   .hero::before {
     content: '';
     position: absolute;
-    /* Hugs the terminal, so the glow peeks out just past its sides. */
-    inset: 80px max(0px, 50% - var(--hero-term-width) / 2 - 60px) 20px;
+    /* Starts below the terminal's top edge so the blur fades out before reaching the header. */
+    inset: 128px max(0px, 50% - var(--hero-term-width) / 2 - 24px) 20px;
     z-index: -1;
     background: var(--hero-glow);
-    filter: blur(28px);
+    filter: blur(24px);
     pointer-events: none;
   }
 </style>
