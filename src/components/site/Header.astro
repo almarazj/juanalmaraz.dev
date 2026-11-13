@@ -60,7 +60,8 @@ const home = Astro.url.pathname === '/' ? '#top' : '/';
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font: 500 12.5px/1 var(--font-mono);
+    /* Tall enough for descenders, which overflow: hidden would otherwise clip. */
+    font: 500 12.5px/1.4 var(--font-mono);
     white-space: nowrap;
   }
   .search {
