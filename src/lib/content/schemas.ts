@@ -59,9 +59,15 @@ export const ExperienceSchema = z.object({
 export const EducationSchema = z.object({
   title: z.string().min(1, 'Required'),
   school: z.string().min(1, 'Required'),
+  url: z.httpUrl('Use an http(s) URL').optional(),
+  place: z.string().optional(),
+  // Optional so degrees saved before the logo existed still parse; the school's first letters stand in.
+  monogram: z.string().optional(),
+  logo: ImageRefSchema.optional(),
   start: month,
   end: month.nullable(),
   summary: z.string(),
+  thesis: z.string().optional(),
 });
 
 export const CertificateSchema = z.object({

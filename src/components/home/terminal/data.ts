@@ -35,7 +35,8 @@ export function terminalData(c: TerminalContent, build: Build): TerminalData {
     role: profile.role,
     based: profile.based,
     stack: [...tech.daily, ...tech.infra],
-    education: degree && `${degree.title}, ${degree.school}`,
+    // The title only: with the school's full name the line pushes neofetch's info below the art.
+    education: degree?.title,
     languages: c.site.languages,
     careerStart: c.site.careerStart,
     links: { resume: '/resume.pdf', github: profile.links.github, linkedin: profile.links.linkedin },
@@ -62,7 +63,7 @@ export function terminalData(c: TerminalContent, build: Build): TerminalData {
   ]);
   const degrees = c.education.map((e): [string, FileNode] => [
     `${e.id}.md`,
-    md(`# ${e.title}\n${e.school} · ${e.start} to ${e.end ?? 'now'}\n\n${e.summary}`, '/#edu-degree'),
+    md(`# ${e.title}\n${e.school} · ${e.start} to ${e.end ?? 'now'}\n\n${e.summary}${e.thesis ? `\n\nThesis: ${e.thesis}` : ''}`, '/#edu-degree'),
   ]);
   const certificates: FileNode = {
     t: 'f',

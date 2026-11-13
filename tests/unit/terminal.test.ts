@@ -95,7 +95,7 @@ describe('neofetch', () => {
       ['Uptime', '2+ years in software engineering'],
       ['Stack', 'Node.js, GCP'],
       ['Based', 'Buenos Aires, AR · 09:14 (GMT-3)'],
-      ['Education', 'Sound Engineering, UNTREF'],
+      ['Education', 'Sound Engineering'],
       ['Languages', 'Spanish (native), English (C1)'],
       ['Links', 'resume · github · linkedin'],
       ['Packages', '1 project, 1 post'],

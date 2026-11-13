@@ -155,7 +155,7 @@ Lab: [side index](https://claude.ai/artifact/GaFz1CxoNBLZpgkr7yVsNH) (variant 8+
 ### Experience
 
 Titled "Work experience".
-One entry per role, without a frame, separated by hairlines: a 48px company logo (the monogram on a soft tile when there is none), the role in Plex Serif with the period on the same line, company (linked when it has a URL), place and mode, then tenure in years and the employment type in mono, the summary, highlights as square bullets, and the stack as chips.
+One entry per role, without a frame, separated by hairlines: a 48px company logo with a 1px `--line` border (the monogram on a soft tile when there is none), the role in Plex Serif with the period on the same line, company (linked when it has a URL), place and mode, then tenure in years and the employment type in mono, the summary, highlights as square bullets, and the stack as chips.
 Lab: [work experience](https://claude.ai/artifact/U1ZTzqnmcHxVm1JSjX7stu) (option B).
 
 ### Projects
@@ -168,9 +168,9 @@ Lab: [projects round 2](https://claude.ai/artifact/SDKH9WPFWmJXN54NyEExLW) (vari
 
 ### Education
 
-A one-column sheet with mono labels on the left.
-"Degree": title, school and years, one-line description.
-"Certs": certificates inline, separated by middle dots, issuer in mono, optional level badge (EF SET); each opens a preview dialog with "Open original ↗".
+Each degree is laid out like a work experience entry (shared `Entry` component): logo or monogram, the title in Plex Serif with the years (no months) on the same line, the school linked to its site with the place, the summary, and the thesis under a mono "Thesis" label.
+Below it, "Certs": certificates inline, separated by middle dots, issuer in mono, optional level badge (EF SET); each opens a preview dialog with "Open original ↗".
+The "Certs" label sits in the entry's 48px logo column so both rows share one left edge.
 Lab: [education round 2](https://claude.ai/artifact/4UnwsSnnQ3zz7KQB3XsJzn) (variant H+).
 
 ### Technologies
