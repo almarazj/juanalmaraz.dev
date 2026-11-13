@@ -16,8 +16,9 @@ export async function buildSearchIndex(): Promise<PaletteItem[]> {
   });
   return [
     section('Work experience', 'experience', 'e', 'Roles and tenure'),
-    section('Projects', 'projects', 'p', 'Backend work and earlier engineering'),
     section('Education', 'education', 'd', 'Degree and certificates'),
+    section('Technologies', 'technologies', 't', 'Production, side projects and tinkering'),
+    section('Projects', 'projects', 'p', 'Backend work and earlier engineering'),
     section('Writing', 'writing', 'w', 'Posts'),
     section('About', 'about', 'a', 'Photos, bio and quick questions'),
     ...experience.map((x) => ({

@@ -6,11 +6,13 @@ import Experience from '../components/home/Experience.astro';
 import Projects from '../components/home/Projects.astro';
 import Education from '../components/home/Education.astro';
 import Writing from '../components/home/Writing.astro';
+import Technologies from '../components/home/Technologies.astro';
 import About from '../components/home/About.astro';
 import { terminalData } from '../components/home/terminal/data';
 import { buildInfo } from '../lib/build-info';
 import { getSingleton, listPublished } from '../lib/content/repo';
 import { readingMinutes, renderMarkdown } from '../lib/markdown/render';
+import { laneId, technologyBoard } from '../lib/content/technologies';
 
 const [experience, projects, degrees, certificates, postDocs, about, site] = await Promise.all([
   listPublished('experience'),
@@ -25,6 +27,11 @@ const backend = projects.filter((p) => p.group === 'backend');
 const engineering = projects.filter((p) => p.group === 'engineering');
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
+const board = technologyBoard({
+  production: experience.flatMap((x) => x.stack),
+  side: projects.flatMap((p) => p.stack),
+  tinkering: site.tinkering ?? [],
+});
 const terminal = terminalData({ site, about, experience, projects, education: degrees, certificates, posts: postDocs }, buildInfo);
 
 const sections = [
@@ -33,17 +40,21 @@ const sections = [
     entries: experience.map((x) => ({ id: `exp-${x.id}`, title: x.role })),
   },
   {
-    id: 'projects', title: 'Projects', color: 'var(--c-projects)',
-    entries: [
-      { id: 'proj-backend', title: 'Backend' },
-      { id: 'proj-engineering', title: 'Earlier engineering work' },
-    ],
-  },
-  {
     id: 'education', title: 'Education', color: 'var(--c-education)',
     entries: [
       { id: 'edu-degree', title: 'Degree' },
       { id: 'edu-certs', title: 'Certificates' },
+    ],
+  },
+  {
+    id: 'technologies', title: 'Technologies', color: 'var(--muted)',
+    entries: board.lanes.map((l) => ({ id: laneId(l.category), title: l.category })),
+  },
+  {
+    id: 'projects', title: 'Projects', color: 'var(--c-projects)',
+    entries: [
+      { id: 'proj-backend', title: 'Backend' },
+      { id: 'proj-engineering', title: 'Earlier engineering work' },
     ],
   },
   {
@@ -67,8 +78,9 @@ const sections = [
       <SideIndex sections={sections} />
       <div class="sections">
         <Experience items={experience} now={new Date()} />
-        <Projects backend={backend} engineering={engineering} />
         <Education degrees={degrees} certificates={certificates} />
+        <Technologies board={board} />
+        <Projects backend={backend} engineering={engineering} />
         <Writing posts={posts} />
         <About about={about} bioHtml={bio.html} />
       </div>
