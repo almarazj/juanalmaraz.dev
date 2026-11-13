@@ -27,7 +27,7 @@ test('work experience cards show tenure, type and highlights', async ({ page }) 
   await expect(page.locator('#experience .section-label')).toHaveText('Work experience');
   const cards = page.locator('#experience article');
   for (const card of await cards.all()) {
-    await expect(card.locator('.monogram')).toHaveText(/^\w{1,3}$/);
+    await expect(card.locator('.logo')).toBeVisible();
     await expect(card.locator('.meta')).toHaveText(/^\d+\.\d yrs/);
   }
   await expect(cards.first().locator('.highlights li')).toHaveCount(4);
@@ -172,4 +172,12 @@ test('technologies board stacks lanes with one legend on phones', async ({ page 
   const board = page.locator('#technologies');
   await expect(board.locator('.head').first()).toBeHidden();
   await expect(board.locator('.legend li')).toHaveText(['Tinkering', 'Side projects', 'Production']);
+});
+
+test('the degree reads like a role: years beside the title, linked school and thesis', async ({ page }) => {
+  const degree = page.locator('#edu-degree');
+  await expect(degree.locator('h3')).toHaveText('B.Eng. in Sound Engineering');
+  await expect(degree.locator('.period')).toHaveText('2016 - 2024');
+  await expect(degree.getByRole('link', { name: 'Universidad Nacional de Tres de Febrero' })).toHaveAttribute('href', 'https://www.untref.edu.ar/');
+  await expect(degree.locator('.thesis')).toContainText('audio watermarking');
 });

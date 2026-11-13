@@ -8,6 +8,7 @@ import {
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { config, s3 } from '../src/lib/aws';
 import { processImage } from '../src/lib/images/process';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { ZodType } from 'zod';
 
@@ -16,13 +17,22 @@ process.env.AWS_ENDPOINT_URL_S3 ??= 'http://localhost:9000';
 
 // SAMPLE-ONLY: stand-in images copied from the old site.
 const oldSite = new URL('../tests/fixtures/images/', import.meta.url).pathname;
-const img = (file: string, base: string, alt: string) => readFile(oldSite + file).then((b) => processImage(b, base, alt));
+// The content hash in the base gives a changed file a new URL, since variants are cached as immutable.
+const img = (file: string, base: string, alt: string) =>
+  readFile(oldSite + file).then((b) => processImage(b, `${base}-${createHash('sha256').update(b).digest('hex').slice(0, 8)}`, alt));
 const [rirGui, pv, render, mpu, profile] = await Promise.all([
   img('rir-gui.png', 'projects/rir-gui', 'Impulse response analysis GUI'),
   img('pv.png', 'projects/pv', 'Phase vocoder block diagram'),
   img('render.png', 'projects/render', 'Render of the compressor enclosure'),
   img('mpu6050.jpg', 'projects/mpu6050', 'MPU6050 accelerometer on a test rig'),
   img('profile-img.png', 'about/profile', 'Juan Almaraz'),
+]);
+// Organization logos: Mecantronic's and Infiniem Labs' from their LinkedIn pages, the rest from each organization's own site.
+const [mecantronicLogo, undefLogo, untrefLogo, infiniemLogo] = await Promise.all([
+  img('logos/mecantronic.png', 'logos/mecantronic', 'Mecantronic'),
+  img('logos/undef.png', 'logos/undef', 'Universidad de la Defensa Nacional'),
+  img('logos/untref.png', 'logos/untref', 'UNTREF'),
+  img('logos/infiniem-labs.png', 'logos/infiniem-labs', 'Infiniem Labs'),
 ]);
 
 // SAMPLE-ONLY: a minimal one-page PDF so /resume.pdf works in e2e.
@@ -52,7 +62,7 @@ async function put<T extends object>(c: Collection, id: string, schema: ZodType<
 // From the resume in English.
 const experience = [
   {
-    id: 'mecantronic', role: 'Backend Engineer', org: 'Mecantronic', url: 'https://mecantronic.com.ar/', monogram: 'ME', start: '2025-03', end: null, place: 'Buenos Aires, AR',
+    id: 'mecantronic', role: 'Backend Engineer', org: 'Mecantronic', url: 'https://mecantronic.com.ar/', monogram: 'ME', logo: mecantronicLogo, start: '2025-03', end: null, place: 'Buenos Aires, AR',
     summary: 'Backend and full-stack development for client projects across industries (fintech, agribusiness, energy).',
     highlights: [
       'Owned features end to end, from gathering requirements with clients to deploying them in monthly production releases.',
@@ -63,16 +73,16 @@ const experience = [
     stack: ['Python', 'FastAPI', 'PostgreSQL', 'MySQL', 'Docker', 'AWS'], order: 1,
   },
   {
-    id: 'undef-ta', role: 'Teaching Assistant, Mechatronics Lab', org: 'Universidad de la Defensa Nacional', url: 'https://undef.edu.ar/', monogram: 'UD', start: '2026-10', end: null, place: 'Buenos Aires, AR', type: 'Part-time',
+    id: 'undef-ta', role: 'Teaching Assistant, Mechatronics Lab', org: 'Universidad de la Defensa Nacional', url: 'https://undef.edu.ar/', monogram: 'UD', logo: undefLogo, start: '2026-10', end: null, place: 'Buenos Aires, AR', type: 'Part-time',
     summary: 'Guide students through their mechatronics projects, helping them design, build and troubleshoot their prototypes.', stack: [], order: 2,
   },
   {
-    id: 'infiniem-labs', role: 'Machine Learning Engineer', org: 'Infiniem Labs', url: 'https://www.infiniemlabs.com.ar/', monogram: 'IL', start: '2024-08', end: '2024-12', place: 'Buenos Aires, AR', type: 'Internship',
+    id: 'infiniem-labs', role: 'Machine Learning Engineer', org: 'Infiniem Labs', url: 'https://www.infiniemlabs.com.ar/', monogram: 'IL', logo: infiniemLogo, start: '2024-08', end: '2024-12', place: 'Buenos Aires, AR', type: 'Internship',
     summary: 'Contributed to a synthetic speech detection system: built audio datasets, cleaned recordings, ran exploratory and statistical analysis, and trained models in Python.',
     stack: ['Python'], order: 3,
   },
   {
-    id: 'untref-ta', role: 'Teaching Assistant, Electromagnetism', org: 'Universidad Nacional de Tres de Febrero', url: 'https://www.untref.edu.ar/', monogram: 'UN', start: '2022-02', end: '2022-12', place: 'Buenos Aires, AR',
+    id: 'untref-ta', role: 'Teaching Assistant, Electromagnetism', org: 'Universidad Nacional de Tres de Febrero', url: 'https://www.untref.edu.ar/', monogram: 'UN', logo: untrefLogo, start: '2022-02', end: '2022-12', place: 'Buenos Aires, AR',
     summary: '', stack: [], order: 4,
   },
 ];
@@ -92,7 +102,12 @@ const projects = [
 ] as const;
 
 const education = [
-  { id: 'sound-engineering', title: 'Sound Engineering', school: 'UNTREF', start: '2016-03', end: '2024-03', summary: 'Degree in sound engineering.' },
+  {
+    id: 'sound-engineering', title: 'B.Eng. in Sound Engineering', school: 'Universidad Nacional de Tres de Febrero', url: 'https://www.untref.edu.ar/',
+    place: 'Buenos Aires, AR', monogram: 'UN', logo: untrefLogo, start: '2016-03', end: '2024-12',
+    summary: 'All coursework completed, thesis in progress. An engineering background in statistics, signal processing and machine learning.',
+    thesis: 'Evaluation of deep learning audio watermarking systems (AudioSeal, SilentCipher, WavMark) for synthetic speech detection.',
+  },
 ];
 
 const cert = (name: string, issuer: string, year: number, order: number, level?: string, verifyUrl?: string) =>
