@@ -48,7 +48,7 @@ Every section, its rail entry, its palette results and its chips use the same hu
 
 ### Graphite (terminal surfaces)
 
-Used by the hero terminal, code blocks and the status tooltip; identical in both modes.
+Used by code blocks and the status tooltip; identical in both modes.
 
 | Token | Value | Use |
 |---|---|---|
@@ -59,6 +59,20 @@ Used by the hero terminal, code blocks and the status tooltip; identical in both
 | `--g-acc` | `#ffb15c` | Prompt `$`, strings, keywords |
 | `--g-ok` | `#7fe0a8` | 200, healthy |
 | `--g-info` | `#a9c1ff` | Cold start, functions |
+
+### Tty (hero terminal)
+
+The hero terminal is a near-black screen, identical in both modes; accent, ok and info reuse the graphite values.
+
+| Token | Value | Use |
+|---|---|---|
+| `--tty-bg` | `#121316` | Screen |
+| `--tty-fg` | `#d9dce1` | Primary text |
+| `--tty-dim` | `#737a83` | Meta, grey suggestion, unfocused cursor |
+| `--tty-sel` | `#2c2f35` | Selected completion, scrollbar |
+| `--tty-err` | `#ff9d9d` | Errors, 4xx and 5xx, grep matches |
+| `--tty-mag` | `#e2acff` | Numbers in JSON, the PDF in `ls` |
+| `--tty-cyan` | `#8adfe6` | `true`, `false`, `null`, git refs |
 
 ### Tint chips
 
@@ -91,8 +105,9 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 - Radius: 6px for controls and stamps, 8px for cards, 10 to 12px for panels and popovers, 999px for pills.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.
-- Page width is 960px, centered: the hero and the footer span all of it, and below the hero the content column (720px) and the side index (180px) share it with a 60px gap.
-- Breakpoints: 680px (phone), 960px (rail hides).
+- The hero terminal and the content share one 720px column; the footer spans the 960px page.
+- From 1240px the column is centered in the viewport and the side index (180px) sits 60px to its right; between 960px and 1240px the column and the side index share the 960px page; under 960px the column is centered alone.
+- Breakpoints: 680px (phone), 960px (rail hides), 1240px (column centers).
 
 ## Components
 
@@ -100,17 +115,25 @@ Each row names the chosen variant; the link opens the lab where it was chosen.
 
 ### Header
 
-Empty at the top of the page, because the hero already carries the name.
-After the hero scrolls away it shows the name, `/ <current section>` in the section color, and a centered "Search or jump to... ⌘K" field that opens the palette.
+Always visible: the name and a centered "Search or jump to... /" field that opens the palette.
+Once a section is in view it adds `/ <current section>` in the section color, and after the hero scrolls away it gains a bottom border.
 Labs: [header](https://claude.ai/artifact/LxLYdHMRYY8WJktsCJ4utF) (variants 3 and 4).
 
 ### Hero
 
-Left: 96px round photo, name, role line in mono accent ("Backend Engineer · Node.js · GCP"), one-sentence lede, pills for Resume (accent tint), LinkedIn and GitHub.
-Right: a graphite terminal window with two panes.
-Top pane: `$ curl juanalmaraz.dev/api` with endpoint pills (`/me`, `/stack`, `/now`) and the JSON response, already filled on load.
-Bottom pane: `$ tail -f access.log` with the live request feed: method, path, status, cache, ms, relative time.
-Lab: [hero round 3](https://claude.ai/artifact/9c3nNobKxLwNXffQYtLCV7) (variant 5, graphite tone 5·6).
+The hero is one terminal as wide as the content column (440px tall; on phones `min(600px, 85svh)`), with a visually hidden h1 carrying the name.
+It opens straight on `juan@ubuntu:~$ neofetch` and its output: a spinning 3D "JA" in ASCII on the left and, on the right, Role, Uptime (years in software engineering, from `careerStart`), Stack, Based (with Buenos Aires local time), Education, Languages, Links (resume, github, linkedin) and Packages (published projects and posts), then the color swatches and "type help to look around".
+The server renders the same screen without the clock, so it reads as finished before JS runs.
+
+The prompt is a working bash-like shell over the site content:
+- Files: `about.md`, `now.json`, `stack.json`, `resume.pdf`, `access.log`, and `experience/`, `projects/`, `writing/`, `education/` built from the published content.
+- Commands: `help` (commands only), `ls`, `cd`, `cat`, `curl` against the real API (`-i` shows the real response headers), `tail -f access.log` following the live feed, `open`, `neofetch`, `git log` (the build this page came from), `history`, `clear`, `exit`, plus `grep`, `jq`, `head`, `wc` and `sort` behind pipes.
+- Line editing: block cursor, grey suggestion from history then common commands (accept with → or End, or a tap), Tab completion with a menu that Tab cycles, ↑ ↓ filtered by what was typed, Ctrl+R search, Ctrl+C, Ctrl+L, Ctrl+A, Ctrl+E, Ctrl+U, Ctrl+K; history persists in `localStorage["terminal-history"]`.
+- Output stays in scrollback above the prompt; new output follows the bottom only when the reader is already there.
+- The JA spins only while on screen and the tab is visible, and holds still under `prefers-reduced-motion`; `tail -f` polls `/api/requests` every 5 s under the same conditions.
+- Tab on an empty prompt moves focus on, so the terminal never traps the keyboard.
+
+Lab: [hero terminal](https://claude.ai/artifact/B1tPrXVMcFfDJiZpZk3N3V) (direction C, version 3).
 
 ### Side index
 
@@ -159,7 +182,7 @@ Lab: [post configurator](https://claude.ai/artifact/7UQFBWdZX6Yww8hNWqBUvw).
 
 ### Command palette
 
-Opens with `/` or `⌘K` or the header field.
+Opens with `/` (the hint shown), `⌘K` or `Ctrl+K`, or the header field.
 Desktop: centered modal, results grouped by type with a dot in the section color, each result shows its direct shortcut, and a cheat sheet sits at the bottom.
 Phone: a bottom sheet with group filter chips and tall rows.
 Shortcuts: `g e` experience, `g p` projects, `g d` education, `g w` writing, `g a` about, `j`/`k` next and previous section, `t` theme, `r` resume, `g g` top.

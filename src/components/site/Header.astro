@@ -3,12 +3,12 @@ import ThemeToggle from './ThemeToggle.astro';
 ---
 
 <header class="site-header" data-header>
-  <div class="who" data-when-stuck>
+  <div class="who">
     <a class="name" href="#top">Juan Almaraz</a>
     <span class="section" data-header-section></span>
   </div>
-  <button type="button" class="search" data-when-stuck data-palette-open aria-label="Search or jump to">
-    <span>Search or jump to...</span><kbd>⌘K</kbd>
+  <button type="button" class="search" data-palette-open aria-label="Search or jump to">
+    <span>Search or jump to...</span><kbd>/</kbd>
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
   </button>
   <div class="right"><ThemeToggle /></div>
@@ -81,19 +81,12 @@ import ThemeToggle from './ThemeToggle.astro';
   .right {
     justify-self: end;
   }
-  [data-when-stuck] {
-    visibility: hidden;
-  }
-  [data-stuck] [data-when-stuck] {
-    visibility: visible;
-  }
   @media (max-width: 680px) {
     .site-header {
       grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 8px;
     }
     .site-header .search {
-      visibility: visible; /* no hover or stuck state on phones: the sheet must be reachable at scroll 0 */
       width: auto;
       padding: 7px 9px;
     }

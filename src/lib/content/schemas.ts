@@ -82,6 +82,8 @@ export const SiteSchema = z.object({
   resumePath: z.string(),
   photo: ImageRefSchema.optional(),
   now: z.record(z.string(), z.string()),
+  languages: z.string().optional(),
+  careerStart: month.optional(),
 });
 
 export const FeedEntrySchema = z.object({

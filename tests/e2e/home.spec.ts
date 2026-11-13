@@ -126,7 +126,7 @@ test('writing list shows date, minutes and title', async ({ page }) => {
   );
 });
 
-test('resume pill links to /resume.pdf', async ({ page }) => {
+test('hero links the resume', async ({ page }) => {
   await expect(page.locator('#hero').getByRole('link', { name: 'Resume' })).toHaveAttribute('href', '/resume.pdf');
 });
 
@@ -153,11 +153,4 @@ test('processed images load', async ({ page }) => {
     (imgs as HTMLImageElement[]).filter((i) => i.complete && i.naturalWidth === 0).length,
   );
   expect(broken).toBe(0);
-});
-
-test('hero shows the site photo from S3', async ({ page }) => {
-  await page.goto('/');
-  const photo = page.locator('#hero img.photo');
-  await expect(photo).toHaveAttribute('src', /images\/about\/profile-418\.webp/);
-  expect(await photo.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 });

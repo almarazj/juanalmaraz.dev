@@ -110,6 +110,8 @@ const site = {
   resumePath: 'files/resume/juan-almaraz.pdf',
   photo: profile,
   now: { building: 'juanalmaraz.dev', reading: 'Designing Data-Intensive Applications' },
+  languages: 'Spanish (native), English (C1)',
+  careerStart: '2024-04',
 };
 
 // SAMPLE-ONLY: post bodies are placeholders.

@@ -1,81 +1,28 @@
 ---
-import type { Site } from '../../lib/content/schemas';
-import { me } from '../../lib/content/public-api';
-import { imageProps } from '../../lib/images/url';
 import Terminal from './Terminal.astro';
+import type { TerminalData } from './terminal/data';
 
 interface Props {
-  site: Site;
+  terminal: TerminalData;
 }
-const { site } = Astro.props;
-const photo = site.photo;
+const { terminal } = Astro.props;
 ---
 
 <section id="hero" class="hero">
-  <div class="identity">
-    {photo && <img class="photo" {...imageProps(photo, "96px")} alt="" width="96" height="96" />}
-    <h1>Juan Almaraz</h1>
-    <p class="role">{site.roleLine}</p>
-    <p class="lede">{site.lede}</p>
-    <ul class="links">
-      <li><a class="pill resume" href="/resume.pdf">Resume</a></li>
-      <li><a class="pill" href="https://www.linkedin.com/in/juan-almaraz/">LinkedIn</a></li>
-      <li><a class="pill" href="https://github.com/almarazj">GitHub</a></li>
-    </ul>
-  </div>
-
-  <Terminal me={me(site)} />
+  <h1 class="visually-hidden">Juan Almaraz</h1>
+  <Terminal data={terminal} />
 </section>
 
 <style>
+  /* Same width and position as the content column below it. */
   .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 32px 40px;
+    max-width: var(--content-max);
+    margin-inline: auto;
     padding-block: 104px var(--section-gap);
   }
-  /* main is the `page` container: the hero spans the full page width, rail column included. */
-  @container page (min-width: 780px) {
+  @media (min-width: 960px) and (max-width: 1239px) {
     .hero {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-      align-items: start;
+      margin-inline: 0 auto;
     }
-  }
-  .photo {
-    display: block;
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid var(--line);
-  }
-  h1 {
-    margin: 20px 0 6px;
-    font: 600 32px/1.1 var(--font-sans);
-    letter-spacing: -0.015em;
-  }
-  .role {
-    margin: 0;
-    font: 500 13px/1.5 var(--font-mono);
-    color: var(--accent);
-  }
-  .lede {
-    margin: 16px 0 24px;
-    max-width: 52ch;
-    color: var(--muted);
-  }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .resume {
-    --c: var(--accent);
-    border-color: transparent;
-    background: color-mix(in srgb, var(--c) 12%, var(--bg));
-    color: color-mix(in srgb, var(--c) 80%, var(--fg));
   }
 </style>
