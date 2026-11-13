@@ -80,10 +80,6 @@ const sections = [
   main {
     container: page / inline-size;
   }
-  /* Matches the rail layout's content column, so the measure holds when the rail hides. */
-  .sections {
-    max-width: 720px;
-  }
   .sections > :global(section[data-spy-section]) {
     margin-bottom: var(--section-gap);
     scroll-margin-top: 100px;

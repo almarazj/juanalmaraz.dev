@@ -3,10 +3,12 @@ import { expect, test } from '@playwright/test';
 
 const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
 
-test('header is empty at the top and shows name and section after the hero', async ({ page }) => {
+test('header shows name and search at the top and adds the section after the hero', async ({ page }) => {
   await page.goto('/');
   const header = page.getByRole('banner');
-  await expect(header.getByText('Juan Almaraz')).toBeHidden();
+  await expect(header.getByText('Juan Almaraz')).toBeVisible();
+  await expect(header.getByRole('button', { name: /search or jump to/i })).toBeVisible();
+  await expect(header.locator('[data-header-section]')).toBeEmpty();
   await page.locator('#experience').scrollIntoViewIfNeeded();
   await page.evaluate(() => document.querySelector('#experience')!.scrollIntoView());
   await expect(header.getByText('Juan Almaraz')).toBeVisible();
@@ -86,18 +88,26 @@ for (const path of ['/', '/writing', '/writing/terraform-one-person', '/missing-
   });
 }
 
-test('hero and footer share the page width; the rail starts level with Experience and then sticks', async ({ page }) => {
+for (const width of [1100, 1440]) {
+  test(`hero and content share one column at ${width}px, with the rail to its right`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    const box = async (selector: string) => (await page.locator(selector).boundingBox())!;
+    const hero = await box('.hero');
+    const content = await box('main .sections');
+    expect([hero.x, hero.width]).toEqual([content.x, 720]);
+    if (width >= 1240) expect(content.x).toBe((width - 720) / 2);
+    const rail = (await page.getByRole('navigation', { name: 'On this page' }).boundingBox())!;
+    expect(rail.x).toBe(content.x + content.width + 60);
+  });
+}
+
+test('the rail starts level with Experience and then sticks', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  const box = async (selector: string) => (await page.locator(selector).boundingBox())!;
-  const hero = await box('.hero');
-  const footer = await box('body > .site-footer');
-  expect([hero.x, hero.width]).toEqual([footer.x, footer.width]);
-
   const rail = page.getByRole('navigation', { name: 'On this page' });
-  const railBox = await rail.boundingBox();
-  expect(railBox!.x + railBox!.width).toBe(hero.x + hero.width);
-  expect(Math.abs(railBox!.y - (await box('#experience')).y)).toBeLessThanOrEqual(1);
+  const experience = (await page.locator('#experience').boundingBox())!;
+  expect(Math.abs((await rail.boundingBox())!.y - experience.y)).toBeLessThanOrEqual(1);
 
   await page.evaluate(() => document.querySelector('#education')!.scrollIntoView());
   await expect.poll(async () => (await rail.boundingBox())!.y).toBe(96);

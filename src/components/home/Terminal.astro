@@ -1,5 +1,5 @@
 ---
-import { bannerHTML, promptHTML } from './terminal/commands';
+import { promptHTML } from './terminal/commands';
 import type { TerminalData } from './terminal/data';
 import { neofetchHTML } from './terminal/neofetch';
 import { frame, REST_ANGLE } from './terminal/spinner';
@@ -8,9 +8,9 @@ interface Props {
   data: TerminalData;
 }
 const { data } = Astro.props;
-// Without JS (or before it runs) the login and neofetch still read as a finished screen.
+// Without JS (or before it runs) neofetch still reads as a finished screen.
 const now = new Date();
-const screen = `<div class="blk">${bannerHTML(now)}</div><div class="blk">${neofetchHTML(data.info, now, frame(REST_ANGLE))}</div>`;
+const screen = `<div class="echo">${promptHTML([])}neofetch</div><div class="blk">${neofetchHTML(data.info, now, frame(REST_ANGLE))}</div>`;
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
 ---
 
@@ -58,7 +58,7 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
     position: relative;
     display: flex;
     min-width: 0;
-    height: 560px;
+    height: 440px;
     border-radius: var(--radius-panel);
     background: var(--t-bg);
     color: var(--t-fg);
@@ -74,7 +74,6 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
     min-width: 0;
     overflow: hidden auto;
     padding: 18px 22px;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--t-sel) transparent;
     transition: background-color 120ms;
@@ -197,9 +196,9 @@ const json = JSON.stringify(data).replace(/</g, '\\u003c');
   .term .sw-cyan { background: var(--t-cyan); }
   .term .sw-fg { background: var(--t-fg); }
   @media (max-width: 680px) {
-    /* Tall enough for the login and neofetch on a typical phone, never taller than the screen. */
+    /* Tall enough for neofetch on a typical phone, never taller than the screen. */
     .term {
-      height: min(700px, 85svh);
+      height: min(600px, 85svh);
       font-size: 12.5px;
     }
     .term .sb {

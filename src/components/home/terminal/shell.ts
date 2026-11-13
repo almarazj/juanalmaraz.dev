@@ -1,4 +1,4 @@
-import { bannerHTML, candidates, type Candidate, type Env, promptHTML, run, SUGGESTIONS, toHTML, type Result } from './commands';
+import { candidates, type Candidate, type Env, promptHTML, run, SUGGESTIONS, toHTML, type Result } from './commands';
 import type { TerminalData } from './data';
 import { commonPrefix, completionTarget, type HistoryCursor, searchHistory, stepHistory, suggest } from './editor';
 import { esc, span } from './html';
@@ -139,11 +139,11 @@ export class Shell {
     };
   }
 
-  /** Replaces the server-rendered screen with a fresh one: login time and the visitor's own clock. */
+  /** Replaces the server-rendered screen with a fresh one that carries the visitor's own clock. */
   private boot() {
     const now = new Date();
     this.out.replaceChildren();
-    this.print(bannerHTML(now));
+    this.echo('neofetch');
     this.print(neofetchHTML(this.data.info, now, frame(REST_ANGLE), localTime(now)));
     this.render();
     this.scrollBottom();

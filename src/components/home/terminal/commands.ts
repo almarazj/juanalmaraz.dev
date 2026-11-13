@@ -65,13 +65,6 @@ const p2 = (n: number) => String(n).padStart(2, '0');
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const clock = (d: Date) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
-const loginStamp = (d: Date) => `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2, ' ')} ${clock(d)} ${d.getFullYear()}`;
-const SESSION_AGE_MS = 131_000;
-
-/** The tty1 login that opens the session. */
-export const bannerHTML = (now: Date) =>
-  `Ubuntu 24.04.1 LTS ubuntu tty1\n\nubuntu login: juan\nPassword: \nWelcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-49-generic x86_64)\n\n${span('c-dim', `Last login: ${loginStamp(new Date(now.getTime() - SESSION_AGE_MS))} on tty1`)}`;
-
 // ---------- access log ----------
 
 const PATH_WIDTH = 22;

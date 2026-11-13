@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { devices, expect, type Page, test } from '@playwright/test';
 
 const terminal = (page: Page) => page.locator('[data-terminal]');
 const out = (page: Page) => page.locator('[data-out]');
@@ -15,10 +15,12 @@ async function runCommand(page: Page, line: string) {
   await page.keyboard.press('Enter');
 }
 
-test('the hero logs in on an Ubuntu tty and runs neofetch', async ({ page }) => {
+test('the hero opens straight on neofetch', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Juan Almaraz' })).toBeAttached();
-  await expect(out(page)).toContainText('ubuntu login: juan');
+  await expect(out(page).locator('> *')).toHaveCount(2);
+  await expect(out(page).locator('.echo').first()).toHaveText('juan@ubuntu:~$ neofetch');
+  await expect(out(page)).not.toContainText('login');
   await expect(out(page)).toContainText('Role: Backend Engineer');
   await expect(out(page)).toContainText(/Uptime: \d+\+ years in software engineering/);
   await expect(out(page)).toContainText(/Based: Buenos Aires, AR · \d{2}:\d{2} \(GMT-3\)/);
@@ -136,6 +138,25 @@ test('tail -f does not poll /api/requests while the terminal is out of view', as
       return polls.length;
     })
     .toBeGreaterThan(0);
+});
+
+test.describe('on a phone', () => {
+  const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = devices['Pixel 7'];
+  test.use({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch });
+
+  test('a swipe that starts on the terminal scrolls the page', async ({ page, context }) => {
+    await page.goto('/');
+    const box = (await terminal(page).boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const x = box.x + box.width / 2;
+    const y0 = box.y + box.height - 40;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: y0 }] });
+    for (let i = 1; i <= 20; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y0 - i * 20 }] });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  });
 });
 
 test('the JA spins, and holds still under reduced motion', async ({ page }) => {

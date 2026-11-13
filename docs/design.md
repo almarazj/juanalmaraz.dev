@@ -105,8 +105,9 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 - Radius: 6px for controls and stamps, 8px for cards, 10 to 12px for panels and popovers, 999px for pills.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.
-- Page width is 960px, centered: the hero and the footer span all of it, and below the hero the content column (720px) and the side index (180px) share it with a 60px gap.
-- Breakpoints: 680px (phone), 960px (rail hides).
+- The hero terminal and the content share one 720px column; the footer spans the 960px page.
+- From 1240px the column is centered in the viewport and the side index (180px) sits 60px to its right; between 960px and 1240px the column and the side index share the 960px page; under 960px the column is centered alone.
+- Breakpoints: 680px (phone), 960px (rail hides), 1240px (column centers).
 
 ## Components
 
@@ -114,14 +115,14 @@ Each row names the chosen variant; the link opens the lab where it was chosen.
 
 ### Header
 
-Empty at the top of the page, because the hero already carries the name.
-After the hero scrolls away it shows the name, `/ <current section>` in the section color, and a centered "Search or jump to... ⌘K" field that opens the palette.
+Always visible: the name and a centered "Search or jump to... /" field that opens the palette.
+Once a section is in view it adds `/ <current section>` in the section color, and after the hero scrolls away it gains a bottom border.
 Labs: [header](https://claude.ai/artifact/LxLYdHMRYY8WJktsCJ4utF) (variants 3 and 4).
 
 ### Hero
 
-The hero is one full-width terminal (560px tall; on phones `min(700px, 85svh)`), with a visually hidden h1 carrying the name.
-It opens as an Ubuntu tty1 login as `juan@ubuntu`, then `.bashrc` runs neofetch: a spinning 3D "JA" in ASCII on the left and, on the right, Role, Uptime (years in software engineering, from `careerStart`), Stack, Based (with Buenos Aires local time), Education, Languages, Links (resume, github, linkedin) and Packages (published projects and posts), then the color swatches and "type help to look around".
+The hero is one terminal as wide as the content column (440px tall; on phones `min(600px, 85svh)`), with a visually hidden h1 carrying the name.
+It opens straight on `juan@ubuntu:~$ neofetch` and its output: a spinning 3D "JA" in ASCII on the left and, on the right, Role, Uptime (years in software engineering, from `careerStart`), Stack, Based (with Buenos Aires local time), Education, Languages, Links (resume, github, linkedin) and Packages (published projects and posts), then the color swatches and "type help to look around".
 The server renders the same screen without the clock, so it reads as finished before JS runs.
 
 The prompt is a working bash-like shell over the site content:
@@ -181,7 +182,7 @@ Lab: [post configurator](https://claude.ai/artifact/7UQFBWdZX6Yww8hNWqBUvw).
 
 ### Command palette
 
-Opens with `/` or `⌘K` or the header field.
+Opens with `/` (the hint shown), `⌘K` or `Ctrl+K`, or the header field.
 Desktop: centered modal, results grouped by type with a dot in the section color, each result shows its direct shortcut, and a cheat sheet sits at the bottom.
 Phone: a bottom sheet with group filter chips and tall rows.
 Shortcuts: `g e` experience, `g p` projects, `g d` education, `g w` writing, `g a` about, `j`/`k` next and previous section, `t` theme, `r` resume, `g g` top.

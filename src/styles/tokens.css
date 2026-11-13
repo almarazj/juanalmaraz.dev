@@ -44,8 +44,9 @@
   --radius-panel: 12px;
   --radius-pill: 999px;
   --section-gap: 44px;
-  /* Hero, footer, and content plus rail all share this width. */
+  /* The page frame and footer; the hero and the content share the narrower column. */
   --page-max: 960px;
+  --content-max: 720px;
   --rail-width: 180px;
   --rail-gap: 60px;
 }
