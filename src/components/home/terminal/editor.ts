@@ -39,15 +39,6 @@ export function stepHistory(
   return { cursor: { ...c, index: i }, value: history[i] };
 }
 
-/** Newest entry before `before` that contains `query`. */
-export function searchHistory(history: readonly string[], query: string, before: number): { index: number; entry: string } | null {
-  if (!query) return null;
-  for (let i = Math.min(before, history.length) - 1; i >= 0; i--) {
-    if (history[i].includes(query)) return { index: i, entry: history[i] };
-  }
-  return null;
-}
-
 /** The word under completion, within the last pipeline stage. */
 export function completionTarget(value: string, pos: number) {
   const left = value.slice(0, pos);

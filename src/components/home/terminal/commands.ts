@@ -247,29 +247,6 @@ async function curl(args: string[], { env }: Ctx): Promise<Result> {
   return { html: `${preHTML}\n\n${bodyHTML}`, text: `${preText}\n\n${bodyText}` };
 }
 
-// ---------- jq ----------
-
-function jq(value: unknown, filter: string): unknown[] {
-  let values = [value];
-  let piped = false;
-  for (const t of filter.match(/\[\]|\[\d+\]|[A-Za-z_][\w-]*|\|/g) ?? []) {
-    if (t === '|') {
-      piped = true;
-      continue;
-    }
-    values = values.flatMap((x) => {
-      const obj = x !== null && typeof x === 'object' ? (x as Record<string, unknown>) : null;
-      if (t === '[]') return Array.isArray(x) ? x : obj ? Object.values(obj) : [];
-      if (t.startsWith('[')) return [Array.isArray(x) ? (x[Number(t.slice(1, -1))] ?? null) : null];
-      if (piped && t === 'keys') return [obj ? Object.keys(obj) : null];
-      if (piped && t === 'length') return [x == null ? 0 : obj ? Object.keys(obj).length : String(x).length];
-      return [obj && Object.hasOwn(obj, t) ? obj[t] : null];
-    });
-    piped = false;
-  }
-  return values;
-}
-
 // ---------- commands ----------
 
 const HELP: [string, string][] = [
@@ -285,12 +262,6 @@ const HELP: [string, string][] = [
   ['clear', 'clear the screen'],
 ];
 const ALSO = 'also: pwd, whoami, date, echo, man, which, exit';
-
-const readOnly = (name: string): Command => ({
-  summary: 'not available, the filesystem is read-only',
-  hidden: true,
-  run: (args) => ({ text: `${name}: cannot modify '${args.find((a) => !a.startsWith('-')) ?? ''}': Read-only file system`, status: 1 }),
-});
 
 export const ALIASES: Record<string, string> = { ll: 'ls -la', la: 'ls -a', l: 'ls' };
 
@@ -383,7 +354,6 @@ export const COMMANDS: Record<string, Command> = {
       return { html: outs.map(toHTML).join('\n'), text: outs.map(toText).join('\n'), status };
     },
   },
-  less: { summary: 'view a file', hidden: true, run: (args, ctx) => COMMANDS.cat.run(args, ctx) },
   head: {
     summary: 'print the first lines',
     async run(args, ctx) {
@@ -459,28 +429,6 @@ export const COMMANDS: Record<string, Command> = {
         return out + esc(l.slice(last));
       };
       return { html: lines.map((l) => (invert ? esc(l) : mark(l))).join('\n'), text: lines.join('\n') };
-    },
-  },
-  jq: {
-    summary: 'pick fields from JSON',
-    run(args, { stdin }) {
-      const { flags, rest } = split(args);
-      if (!stdin) return { text: 'jq: no input, try: curl /api/me | jq .name', status: 2 };
-      let value = stdin.json;
-      if (value === undefined) {
-        try {
-          value = JSON.parse(toText(stdin));
-        } catch {
-          return { text: 'jq: error (at <stdin>:1): Cannot parse input as JSON', status: 2 };
-        }
-      }
-      const raw = flags.includes('r');
-      const values = jq(value, rest[0] ?? '.');
-      const plain = (v: unknown): v is string => raw && typeof v === 'string';
-      return {
-        html: values.map((v) => (plain(v) ? linkify(esc(v)) : highlightJson(v))).join('\n'),
-        text: values.map((v) => (plain(v) ? v : JSON.stringify(v, null, 2))).join('\n'),
-      };
     },
   },
   wc: {
@@ -597,19 +545,19 @@ export const COMMANDS: Record<string, Command> = {
     hidden: true,
     run: () => ({ text: '[sudo] password for juan: \nSorry, try again.\nsudo: 1 incorrect password attempt', status: 1 }),
   },
-  finger: {
-    summary: 'user information',
+  rm: {
+    summary: 'remove files',
     hidden: true,
-    run(args, { env }) {
-      if (args[0] && args[0] !== 'juan') return { text: `finger: ${args[0]}: no such user.`, status: 1 };
-      return { text: `Login: juan\t\t\tName: Juan Almaraz\nDirectory: ${absPath([])}\tShell: /bin/bash\nOffice: ${env.info.based}\nPlan:\n${env.info.role}.` };
+    run: (args) => ({ text: `rm: cannot remove '${split(args).rest[0] ?? ''}': Read-only file system`, status: 1 }),
+  },
+  mv: {
+    summary: 'move files',
+    hidden: true,
+    run(args) {
+      const [from = '', to = ''] = split(args).rest;
+      return { text: `mv: cannot move '${from}' to '${to}': Read-only file system`, status: 1 };
     },
   },
-  rm: readOnly('rm'),
-  mv: readOnly('mv'),
-  cp: readOnly('cp'),
-  touch: readOnly('touch'),
-  mkdir: readOnly('mkdir'),
 };
 
 const visible = () => Object.keys(COMMANDS).filter((n) => !COMMANDS[n].hidden);
@@ -641,7 +589,7 @@ export const SUGGESTIONS = [
 
 const API_PATHS = ['/api/me', '/api/stack', '/api/now', '/api/experience', '/api/requests', '/api/status', '/api/health'];
 const FLAGS: Record<string, string[]> = {
-  ls: ['-l', '-a', '-la'], curl: ['-i', '-I', '-v'], tail: ['-f', '-n'], head: ['-n'], grep: ['-i', '-v', '-c'], jq: ['-r'], wc: ['-l', '-w', '-c'],
+  ls: ['-l', '-a', '-la'], curl: ['-i', '-I', '-v'], tail: ['-f', '-n'], head: ['-n'], grep: ['-i', '-v', '-c'], wc: ['-l', '-w', '-c'],
 };
 
 export interface Candidate {
@@ -681,7 +629,6 @@ export function candidates(env: Env, words: string[], cur: string): Candidate[] 
     case 'open':
       return [...pathCandidates(env, cur, false), ...of(['github', 'linkedin'])];
     case 'grep':
-    case 'jq':
       return words.length === 2 ? [] : pathCandidates(env, cur, false);
     default:
       return pathCandidates(env, cur, cmd === 'cd');

@@ -1,6 +1,6 @@
 import { candidates, type Candidate, type Env, promptHTML, run, SUGGESTIONS, toHTML, type Result } from './commands';
 import type { TerminalData } from './data';
-import { commonPrefix, completionTarget, type HistoryCursor, searchHistory, stepHistory, suggest } from './editor';
+import { commonPrefix, completionTarget, type HistoryCursor, stepHistory, suggest } from './editor';
 import { esc, span } from './html';
 import { localTime, neofetchHTML } from './neofetch';
 import { frame, REST_ANGLE } from './spinner';
@@ -71,7 +71,6 @@ export class Shell {
   private status = 0;
   private readonly history = loadHistory();
   private cursor: HistoryCursor | null = null;
-  private search: { before: number; at?: number; original: string } | null = null;
   private menu: { items: Candidate[]; index: number; start: number; end: number } | null = null;
   private busy = false;
   private stopJob: (() => void) | null = null;
@@ -95,7 +94,6 @@ export class Shell {
     this.input.addEventListener('keydown', (e) => this.key(e));
     this.input.addEventListener('input', () => {
       this.cursor = null;
-      if (this.search) this.search.before = this.history.length;
       this.closeMenu();
       this.render();
     });
@@ -199,14 +197,6 @@ export class Shell {
       this.view.innerHTML = this.block(' ');
       return;
     }
-    if (this.search) {
-      const hit = searchHistory(this.history, this.input.value, this.search.before);
-      this.search.at = hit?.index;
-      const failed = !hit && this.input.value;
-      this.ps.innerHTML = span('c-dim', failed ? '(failed reverse-i-search)`' : '(reverse-i-search)`') + esc(this.input.value) + span('c-dim', "': ");
-      this.view.innerHTML = esc(hit?.entry ?? '') + this.block(' ');
-      return;
-    }
     this.ps.innerHTML = promptHTML(this.cwd);
     const v = this.input.value;
     const pos = this.input.selectionStart ?? v.length;
@@ -290,7 +280,6 @@ export class Shell {
       }
       return;
     }
-    if (this.search) return this.searchKey(e, k, lower, ctrl);
     if (k !== 'Tab' && k !== 'Shift') this.closeMenu();
 
     const v = this.input.value;
@@ -335,11 +324,6 @@ export class Shell {
     } else if (ctrl && lower === 'k') {
       e.preventDefault();
       this.setValue(v.slice(0, pos));
-    } else if (ctrl && lower === 'r') {
-      e.preventDefault();
-      this.search = { before: this.history.length, original: v };
-      this.input.value = '';
-      this.render();
     } else if (ctrl && lower === 'd') {
       e.preventDefault();
       if (!v) {
@@ -348,32 +332,6 @@ export class Shell {
       }
     } else {
       // Caret moves (arrows, Home, Backspace) land after the default action.
-      requestAnimationFrame(() => this.render());
-    }
-  }
-
-  private searchKey(e: KeyboardEvent, k: string, lower: string, ctrl: boolean) {
-    const search = this.search!;
-    const hit = searchHistory(this.history, this.input.value, search.before);
-    const leave = (v: string) => {
-      this.search = null;
-      this.setValue(v);
-    };
-    if (k === 'Enter') {
-      e.preventDefault();
-      leave(hit?.entry ?? '');
-      void this.submit();
-    } else if (ctrl && lower === 'r') {
-      e.preventDefault();
-      if (hit) search.before = hit.index;
-      this.render();
-    } else if (ctrl && (lower === 'g' || lower === 'c')) {
-      e.preventDefault();
-      leave(search.original);
-    } else if (['Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab'].includes(k)) {
-      e.preventDefault();
-      leave(hit?.entry ?? search.original);
-    } else {
       requestAnimationFrame(() => this.render());
     }
   }
