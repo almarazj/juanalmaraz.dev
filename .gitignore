@@ -12,3 +12,4 @@ infra/**/*.tfstate.*
 infra/**/*.tfplan
 infra/terraform.tfvars
 infra/build/
+.env

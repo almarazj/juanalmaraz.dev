@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import type { APIContext, MiddlewareNext } from 'astro';
-import { requireAdmin } from './lib/auth/admin';
+import { config } from './lib/aws';
+import { devSessionEmail, issueSession, requireAdmin, sessionCookie } from './lib/auth/admin';
 import { recordRequest, takeColdFlag } from './lib/feed/capture';
 
 // The only /admin routes reachable without an admin session: the sign-in page and the OAuth round trip.
@@ -20,6 +21,14 @@ const guard = async (context: APIContext, next: MiddlewareNext): Promise<Respons
     } catch (err) {
       if (!(err instanceof Response)) throw err;
       response = err;
+      // Only a request without a cookie gets one, so a cookie the browser drops cannot loop.
+      const devEmail = devSessionEmail({ dev: import.meta.env.DEV, local: config().local, env: process.env });
+      if (devEmail && context.request.method === 'GET' && !sessionCookie(context.request)) {
+        return new Response(null, {
+          status: 302,
+          headers: { Location: context.url.pathname + context.url.search, 'Set-Cookie': await issueSession(devEmail, Date.now()), 'Cache-Control': 'no-store' },
+        });
+      }
       // Pages answer 403 with the sign-in form, so the owner can sign in where they landed.
       if (context.request.method === 'GET' && !path.startsWith('/admin/api/')) {
         const page = await context.rewrite('/admin/login');

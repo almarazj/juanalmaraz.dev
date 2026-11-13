@@ -1,9 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { secret } from '../../../lib/aws';
-import { cookieValue, forbidden, isAdmin, SESSION_COOKIE, SESSION_DAYS } from '../../../lib/auth/admin';
+import { cookieValue, forbidden, isAdmin, issueSession } from '../../../lib/auth/admin';
 import { exchangeCode, OAUTH_COOKIE, verifyIdToken } from '../../../lib/auth/cognito';
-import { signSession } from '../../../lib/auth/session';
 
 // Hashing first gives equal lengths, so the comparison leaks neither content nor length.
 const sameString = (a: string, b: string) =>
@@ -24,9 +22,8 @@ export const GET: APIRoute = async ({ request, url }) => {
   try {
     const claims = await verifyIdToken(await exchangeCode(code, verifier));
     if (!isAdmin(claims)) return reject();
-    const session = signSession(claims.email!, Date.now(), await secret('session-key'));
     const headers = new Headers({ Location: '/admin' });
-    headers.append('Set-Cookie', `${SESSION_COOKIE}=${session}; Path=/admin; Max-Age=${SESSION_DAYS * 86_400}; HttpOnly; Secure; SameSite=Lax`);
+    headers.append('Set-Cookie', await issueSession(claims.email!, Date.now()));
     headers.append('Set-Cookie', OAUTH_COOKIE('', 0));
     return new Response(null, { status: 302, headers });
   } catch (err) {

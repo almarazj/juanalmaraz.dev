@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { devSessionEmail } from '../../src/lib/auth/admin';
+import { verifySession } from '../../src/lib/auth/session';
 
 const putEntry = vi.fn<(e: unknown) => Promise<void>>(async () => {});
 vi.mock('astro:middleware', () => ({ defineMiddleware: (f: unknown) => f }));
@@ -54,5 +56,47 @@ describe('middleware feed capture', () => {
     expect(res.status).toBe(403);
     expect(res.headers.get('Cache-Control')).toBe('no-store');
     expect(putEntry).not.toHaveBeenCalled();
+  });
+
+  describe('under astro dev on local services', () => {
+    beforeEach(() => {
+      vi.stubEnv('ADMIN_EMAIL', 'owner@example.com');
+      vi.stubEnv('SESSION_KEY', 'dev-session-key');
+    });
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('signs the owner in with a real session cookie and returns to the same page', async () => {
+      const onRequest = await load();
+      const res = await onRequest(ctx('/admin/posts?draft=1'), async () => new Response('secret'));
+      expect(res.status).toBe(302);
+      expect(res.headers.get('Location')).toBe('/admin/posts?draft=1');
+      const cookie = res.headers.get('Set-Cookie')!;
+      expect(cookie).toMatch(/^__session=[\w-]+\.[\w-]+; Path=\/admin; Max-Age=432000; HttpOnly; Secure; SameSite=Lax$/);
+      const token = cookie.split(';')[0].slice('__session='.length);
+      expect(verifySession(token, Date.now(), 'dev-session-key')?.email).toBe('owner@example.com');
+    });
+
+    it('never re-issues over a cookie the browser already sent, so a dropped cookie cannot loop', async () => {
+      const onRequest = await load();
+      const c = ctx('/admin');
+      c.request.headers.set('cookie', '__session=tampered.value');
+      const res = await onRequest(c, async () => new Response('secret'));
+      expect(res.status).toBe(403);
+    });
+
+    it('leaves API writes to the cookie the page already got', async () => {
+      const onRequest = await load();
+      expect((await onRequest(ctx('/admin/api/save', 'POST'), async () => new Response('ok'))).status).toBe(403);
+    });
+  });
+});
+
+describe('devSessionEmail', () => {
+  it('is the owner only in dev, on local services, with ADMIN_EMAIL set', () => {
+    const env = { ADMIN_EMAIL: 'owner@example.com' };
+    expect(devSessionEmail({ dev: true, local: true, env })).toBe('owner@example.com');
+    expect(devSessionEmail({ dev: false, local: true, env })).toBeNull();
+    expect(devSessionEmail({ dev: true, local: false, env })).toBeNull();
+    expect(devSessionEmail({ dev: true, local: true, env: {} })).toBeNull();
   });
 });

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "services": "docker compose up -d --wait && tsx scripts/local-aws.ts",
-    "dev": "pnpm services && astro dev",
+    "dev": "pnpm services && node --env-file-if-exists=.env node_modules/astro/bin/astro.mjs dev",
     "build": "astro build",
     "test": "pnpm services && vitest run",
     "seed": "tsx scripts/seed.ts",

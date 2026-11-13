@@ -1,9 +1,23 @@
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { config, ddb, secret } from '../aws';
-import { verifySession } from './session';
+import { signSession, verifySession } from './session';
 
 export const SESSION_COOKIE = '__session';
 export const SESSION_DAYS = 5;
+
+export const sessionSetCookie = (value: string, maxAge: number) =>
+  `${SESSION_COOKIE}=${value}; Path=/admin; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
+
+/** A Set-Cookie header carrying a freshly signed session for `email`. */
+export const issueSession = async (email: string, now: number) =>
+  sessionSetCookie(signSession(email, now, await secret('session-key')), SESSION_DAYS * 86_400);
+
+/**
+ * Who gets a session without signing in: the owner, and only under `astro dev` on local services,
+ * where Google sign-in cannot work because it needs the deployed Cognito.
+ */
+export const devSessionEmail = ({ dev, local, env }: { dev: boolean; local: boolean; env: Record<string, string | undefined> }) =>
+  (dev && local && env.ADMIN_EMAIL) || null;
 
 export type VerifySession = (cookie: string) => Promise<{ email?: string; email_verified?: boolean }>;
 
