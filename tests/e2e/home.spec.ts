@@ -23,14 +23,17 @@ test('each section label uses its section color', async ({ page }) => {
   }
 });
 
-test('experience cards show a monogram and a tenure bar', async ({ page }) => {
+test('work experience cards show tenure, type and highlights', async ({ page }) => {
+  await expect(page.locator('#experience .section-label')).toHaveText('Work experience');
   const cards = page.locator('#experience article');
-  await expect(cards.first()).toBeVisible();
   for (const card of await cards.all()) {
     await expect(card.locator('.monogram')).toHaveText(/^\w{1,3}$/);
-    const bar = card.getByRole('img', { name: /years? at/ });
-    await expect(bar).toBeVisible();
+    await expect(card.locator('.meta')).toHaveText(/^\d+\.\d yrs/);
   }
+  await expect(cards.first().locator('.highlights li')).toHaveCount(4);
+  await expect(cards.first().getByRole('link', { name: 'Mecantronic' })).toHaveAttribute('href', 'https://mecantronic.com.ar/');
+  await expect(page.locator('#exp-infiniem-labs .meta')).toHaveText('0.4 yrs · Internship');
+  await expect(page.locator('#exp-untref-ta .summary')).toHaveCount(0);
 });
 
 test('backend strip scrolls with the next button and marks confidential projects', async ({ page }) => {

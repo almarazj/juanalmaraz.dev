@@ -15,7 +15,7 @@ export async function buildSearchIndex(): Promise<PaletteItem[]> {
     group: 'Sections', label, hint, target: `/#${id}`, keys: ['g', key],
   });
   return [
-    section('Experience', 'experience', 'e', 'Roles and tenure'),
+    section('Work experience', 'experience', 'e', 'Roles and tenure'),
     section('Projects', 'projects', 'p', 'Backend work and earlier engineering'),
     section('Education', 'education', 'd', 'Degree and certificates'),
     section('Writing', 'writing', 'w', 'Posts'),

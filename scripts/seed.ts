@@ -49,10 +49,32 @@ async function put<T extends object>(c: Collection, id: string, schema: ZodType<
 }
 
 // SAMPLE-ONLY: "Current company" and all dates, summaries and stacks below are placeholders.
+// From the resume in English.
 const experience = [
-  { id: 'backend-engineer', role: 'Backend Engineer', org: 'Current company', monogram: 'CC', start: '2024-04', end: null, place: 'Buenos Aires, AR', summary: 'Builds APIs and data pipelines in Node.js on GCP.', stack: ['Node.js', 'TypeScript', 'GCP'], order: 1 },
-  { id: 'untref-ta', role: 'Teaching Assistant', org: 'UNTREF', monogram: 'UN', start: '2021-03', end: '2022-12', place: 'Buenos Aires, AR', summary: 'Assisted audio and signal processing courses.', stack: ['Audio', 'Signal processing'], order: 2 },
-  { id: 'hospital-modelo', role: 'Administrative staff', org: 'Hospital Privado Modelo', monogram: 'HM', start: '2019-01', end: '2024-03', place: 'Buenos Aires, AR', summary: 'Administrative work while studying.', stack: [], order: 3 },
+  {
+    id: 'mecantronic', role: 'Backend Engineer', org: 'Mecantronic', url: 'https://mecantronic.com.ar/', monogram: 'ME', start: '2025-03', end: null, place: 'Buenos Aires, AR',
+    summary: 'Backend and full-stack development for client projects across industries (fintech, agribusiness, energy).',
+    highlights: [
+      'Owned features end to end, from gathering requirements with clients to deploying them in monthly production releases.',
+      'Integrated third-party APIs (payment providers, email, messaging) and automated manual processes such as payment reconciliation and billing.',
+      'Built AI-powered solutions, including a computer vision MVP for oil spill detection and conversational bots on WhatsApp and Telegram.',
+      'Adopted spec-driven development with AI coding agents (Claude Code) as part of the daily workflow.',
+    ].join('\n'),
+    stack: ['Python', 'FastAPI', 'PostgreSQL', 'MySQL', 'Docker', 'AWS'], order: 1,
+  },
+  {
+    id: 'undef-ta', role: 'Teaching Assistant, Mechatronics Lab', org: 'Universidad de la Defensa Nacional', url: 'https://undef.edu.ar/', monogram: 'UD', start: '2026-10', end: null, place: 'Buenos Aires, AR', type: 'Part-time',
+    summary: 'Guide students through their mechatronics projects, helping them design, build and troubleshoot their prototypes.', stack: [], order: 2,
+  },
+  {
+    id: 'infiniem-labs', role: 'Machine Learning Engineer', org: 'Infiniem Labs', url: 'https://www.infiniemlabs.com.ar/', monogram: 'IL', start: '2024-08', end: '2024-12', place: 'Buenos Aires, AR', type: 'Internship',
+    summary: 'Contributed to a synthetic speech detection system: built audio datasets, cleaned recordings, ran exploratory and statistical analysis, and trained models in Python.',
+    stack: ['Python'], order: 3,
+  },
+  {
+    id: 'untref-ta', role: 'Teaching Assistant, Electromagnetism', org: 'Universidad Nacional de Tres de Febrero', url: 'https://www.untref.edu.ar/', monogram: 'UN', start: '2022-02', end: '2022-12', place: 'Buenos Aires, AR',
+    summary: '', stack: [], order: 4,
+  },
 ];
 
 // SAMPLE-ONLY: project copy is placeholder.
