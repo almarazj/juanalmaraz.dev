@@ -127,8 +127,8 @@ The server renders the same screen without the clock, so it reads as finished be
 
 The prompt is a working bash-like shell over the site content:
 - Files: `about.md`, `now.json`, `stack.json`, `resume.pdf`, `access.log`, and `experience/`, `projects/`, `writing/`, `education/` built from the published content.
-- Commands: `help` (commands only), `ls`, `cd`, `cat`, `curl` against the real API (`-i` shows the real response headers), `tail -f access.log` following the live feed, `open`, `neofetch`, `git log` (the build this page came from), `history`, `clear`, `exit`, plus `grep`, `jq`, `head`, `wc` and `sort` behind pipes.
-- Line editing: block cursor, grey suggestion from history then common commands (accept with → or End, or a tap), Tab completion with a menu that Tab cycles, ↑ ↓ filtered by what was typed, Ctrl+R search, Ctrl+C, Ctrl+L, Ctrl+A, Ctrl+E, Ctrl+U, Ctrl+K; history persists in `localStorage["terminal-history"]`.
+- Commands: `help` (commands only), `ls`, `cd`, `cat`, `curl` against the real API (`-i` shows the real response headers), `tail -f access.log` following the live feed, `open`, `neofetch`, `git log` (the build this page came from), `history`, `clear`, `exit`, plus `grep`, `head`, `wc` and `sort` behind pipes.
+- Line editing: block cursor, grey suggestion from history then common commands (accept with → or End, or a tap), Tab completion with a menu that Tab cycles, ↑ ↓ filtered by what was typed, Ctrl+C, Ctrl+L, Ctrl+A, Ctrl+E, Ctrl+U, Ctrl+K; history persists in `localStorage["terminal-history"]`.
 - Output stays in scrollback above the prompt; new output follows the bottom only when the reader is already there.
 - The JA spins only while on screen and the tab is visible, and holds still under `prefers-reduced-motion`; `tail -f` polls `/api/requests` every 5 s under the same conditions.
 - Tab on an empty prompt moves focus on, so the terminal never traps the keyboard.

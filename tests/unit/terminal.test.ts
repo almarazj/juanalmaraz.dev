@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { candidates, COMMANDS, type Env, run, toHTML } from '../../src/components/home/terminal/commands';
 import { terminalData, type TerminalContent } from '../../src/components/home/terminal/data';
-import { closest, commonPrefix, completionTarget, searchHistory, stepHistory, suggest, tokenize } from '../../src/components/home/terminal/editor';
+import { closest, commonPrefix, completionTarget, stepHistory, suggest, tokenize } from '../../src/components/home/terminal/editor';
 import { neofetchHTML, rows } from '../../src/components/home/terminal/neofetch';
 import { COLS, frame, REST_ANGLE, ROWS } from '../../src/components/home/terminal/spinner';
 
@@ -141,12 +141,6 @@ describe('line editor', () => {
     expect(stepHistory(history, down.cursor, down.value, 1)).toEqual({ cursor: null, value: 'curl' });
   });
 
-  it('searches history backwards', () => {
-    expect(searchHistory(history, 'api', 3)).toEqual({ index: 2, entry: 'curl /api/stack' });
-    expect(searchHistory(history, 'api', 2)).toEqual({ index: 0, entry: 'curl /api/me' });
-    expect(searchHistory(history, 'nope', 3)).toBeNull();
-  });
-
   it('finds the word to complete in the last pipe stage', () => {
     expect(completionTarget('cat access.log | gr', 19)).toEqual({ words: ['gr'], cur: 'gr', start: 17 });
     expect(completionTarget('cd pro', 6)).toEqual({ words: ['cd', 'pro'], cur: 'pro', start: 3 });
@@ -166,7 +160,7 @@ describe('commands', () => {
     const out = (await run('help', env)).text!;
     expect(out).toMatch(/^Commands\n/);
     expect(out).toContain('tail -f access.log');
-    expect(out).not.toMatch(/keys|pipes|finger/i);
+    expect(out).not.toMatch(/keys|pipes/i);
   });
 
   it('ls, cd and pwd walk the content as files', async () => {
@@ -191,14 +185,13 @@ describe('commands', () => {
     expect((await run('cat now.json', env)).json).toEqual({ building: 'juanalmaraz.dev' });
   });
 
-  it('pipes text through grep and JSON through jq', async () => {
+  it('pipes text through grep and wc', async () => {
     const { env } = makeEnv();
     const grep = await run('cat access.log | grep 404', env);
     expect(grep.text!.split('\n')).toHaveLength(1);
     expect(grep.text).toContain('404 · unknown path');
     expect((await run('cat access.log | wc -l', env)).text!.trim()).toBe('3');
-    expect((await run('curl /api/me | jq .name', env)).text).toBe('"Juan Almaraz"');
-    expect((await run('curl /api/me | jq -r .links.github', env)).text).toBe('https://github.com/almarazj');
+    expect((await run('curl /api/me | jq .name', env)).status).toBe(127);
   });
 
   it('curl shows real response headers with -i and refuses other hosts', async () => {
@@ -265,8 +258,14 @@ describe('commands', () => {
     const values = (words: string[], cur: string) => candidates(env, words, cur).map((c) => c.value).filter((v) => v.startsWith(cur));
     expect(values(['cd', 'pro'], 'pro')).toEqual(['projects/']);
     expect(values(['curl', '/api/s'], '/api/s')).toEqual(['/api/stack', '/api/status']);
-    expect(values(['f'], 'f')).toEqual([]);
-    expect(Object.keys(COMMANDS)).toContain('finger');
+    expect(values(['m'], 'm')).toEqual(['man']);
+    expect(Object.keys(COMMANDS)).toContain('mv');
+  });
+
+  it('rm and mv fail like on a read-only file system', async () => {
+    const { env } = makeEnv();
+    expect(await run('rm -rf about.md', env)).toEqual({ text: "rm: cannot remove 'about.md': Read-only file system", status: 1 });
+    expect((await run('mv about.md x.md', env)).text).toBe("mv: cannot move 'about.md' to 'x.md': Read-only file system");
   });
 });
 
