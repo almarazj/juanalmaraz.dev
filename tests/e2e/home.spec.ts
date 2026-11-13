@@ -157,3 +157,19 @@ test('processed images load', async ({ page }) => {
   );
   expect(broken).toBe(0);
 });
+
+test('technologies board sits between education and projects with one column per level', async ({ page }) => {
+  const order = await page.locator('main .sections > section').evaluateAll((s) => s.map((x) => x.id));
+  expect(order).toEqual(['experience', 'education', 'technologies', 'projects', 'writing', 'about']);
+  const board = page.locator('#technologies');
+  await expect(board.locator('.head')).toHaveText([/Production\s*\d+/, /Side projects\s*\d+/, /Tinkering\s*\d+/]);
+  await expect(board.locator('.lv-production .tech', { hasText: 'Python' })).toBeVisible();
+  await expect(board.locator('.legend')).toBeHidden();
+});
+
+test('technologies board stacks lanes with one legend on phones', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const board = page.locator('#technologies');
+  await expect(board.locator('.head').first()).toBeHidden();
+  await expect(board.locator('.legend li')).toHaveText(['Tinkering', 'Side projects', 'Production']);
+});

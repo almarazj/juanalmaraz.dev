@@ -90,6 +90,8 @@ export const SiteSchema = z.object({
   now: z.record(z.string(), z.string()),
   languages: z.string().optional(),
   careerStart: month.optional(),
+  // The board's hand-kept level; Production and Side projects come from the roles' and projects' stacks.
+  tinkering: z.array(z.string()).optional(),
 });
 
 export const FeedEntrySchema = z.object({

@@ -46,6 +46,8 @@ Every section, its rail entry, and its palette results use the same hue.
 | Writing | `#7a3fb8` | `#c49af0` |
 | About | `#b4366f` | `#f07aae` |
 
+Technologies is the exception: its label and rail entry use `--muted`, and its three columns use the level colors, `--warn` (Tinkering), `--c-experience` (Side projects) and `--ok` (Production).
+
 ### Graphite (terminal surfaces)
 
 Used by code blocks and the status tooltip; identical in both modes.
@@ -113,6 +115,7 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 ## Components
 
 Each row names the chosen variant; the link opens the lab where it was chosen.
+The home's sections, in order: Work experience, Education, Technologies, Projects, Writing, About.
 
 ### Header
 
@@ -164,6 +167,15 @@ A one-column sheet with mono labels on the left.
 "Degree": title, school and years, one-line description.
 "Certs": certificates inline, separated by middle dots, issuer in mono, optional level badge (EF SET); each opens a preview dialog with "Open original ↗".
 Lab: [education round 2](https://claude.ai/artifact/4UnwsSnnQ3zz7KQB3XsJzn) (variant H+).
+
+### Technologies
+
+A kanban with swimlanes: columns Tinkering, Side projects and Production (low to high, each with its count and its level color on a 3px top edge, header and a light column wash), and one lane per category (Languages, Frameworks, Databases, Testing, Cloud & infra) with the lane name in mono on the left.
+Each technology is a chip with its Devicon icon at text height and its name; AWS services without an icon show a letter tile.
+Production comes from the roles' stacks and Side projects from the projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
+Only names in the catalog (`src/lib/content/technologies.ts`) appear, so non-software tags stay off; empty lanes are left out.
+On phones the lanes stack, Production first in each, the chips carry the level color, and one legend (Tinkering, Side projects, Production) closes the section.
+Lab: [technologies board](https://claude.ai/artifact/MeJdkBwmn9saTj9KabD8Zb) (chips, one color per column).
 
 ### About
 

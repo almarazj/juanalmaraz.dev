@@ -1,0 +1,232 @@
+---
+import { LEVELS, laneId, type Board, type Tech } from '../../lib/content/technologies';
+
+interface Props {
+  board: Board;
+}
+const { board } = Astro.props;
+// Production first in the DOM, so the stacked phone layout leads with it; desktop places the columns explicitly.
+const stacked = [...LEVELS].reverse();
+const icon = (t: Tech, variant = '') => `/tech/${t.icon}${variant}.svg`;
+---
+
+<section id="technologies" data-spy-section style="--sc: var(--muted)">
+  <h2 class="section-label">Technologies</h2>
+  <div class="board">
+    <div class="grid">
+      <div class="corner"></div>
+      {
+        stacked.map((l) => (
+          <div class:list={['head', `lv-${l.id}`]}>
+            <span>{l.label}</span>
+            <span class="n">{board.counts[l.id]}</span>
+          </div>
+        ))
+      }
+      {
+        board.lanes.map((lane, i) => (
+          <>
+            <h3 class="lane" id={laneId(lane.category)} data-spy-entry>
+              {lane.category}
+            </h3>
+            {stacked.map((l) => (
+              <div
+                class:list={['cell', `lv-${l.id}`, { last: i === board.lanes.length - 1, empty: !lane.cells[l.id].length }]}
+              >
+                {lane.cells[l.id].length > 0 && <span class="visually-hidden">{l.label}:</span>}
+                <ul>
+                  {lane.cells[l.id].map((t) => (
+                    <li class="tech">
+                      {t.icon ? (
+                        <>
+                          <img class:list={['ico', { light: t.dark }]} src={icon(t)} alt="" loading="lazy" />
+                          {t.dark && <img class="ico dark" src={icon(t, '-dark')} alt="" loading="lazy" />}
+                        </>
+                      ) : (
+                        <span class="ico tile" aria-hidden="true">
+                          <span>{t.name[0]}</span>
+                        </span>
+                      )}
+                      {t.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </>
+        ))
+      }
+    </div>
+    <ul class="legend" aria-hidden="true">
+      {
+        LEVELS.map((l) => (
+          <li class={`lv-${l.id}`}>
+            <i />
+            {l.label}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .board {
+    container-type: inline-size;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 96px repeat(3, minmax(0, 1fr));
+    grid-auto-flow: dense;
+    column-gap: 8px;
+  }
+  .corner,
+  .lane {
+    grid-column: 1;
+  }
+  .lv-tinkering {
+    grid-column: 2;
+    --lv: var(--warn);
+  }
+  .lv-side {
+    grid-column: 3;
+    --lv: var(--c-experience);
+  }
+  .lv-production {
+    grid-column: 4;
+    --lv: var(--ok);
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 12px 8px;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    background: color-mix(in srgb, var(--lv) 13%, var(--bg));
+    box-shadow: inset 0 3px 0 var(--lv);
+    color: var(--lv);
+    font: 600 14px/1.2 var(--font-sans);
+  }
+  .n {
+    font: 500 12px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .lane {
+    margin: 0;
+    padding: 14px 0 12px;
+    border-top: 1px solid var(--line);
+    font: 500 12.5px/1.3 var(--font-mono);
+    color: var(--faint);
+  }
+  .cell {
+    min-width: 0;
+    padding: 10px 10px 12px;
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--lv) 6.5%, var(--bg));
+  }
+  .cell.last {
+    border-radius: 0 0 var(--radius-card) var(--radius-card);
+  }
+  .cell ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tech {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px 3px 7px;
+    border: 1px solid color-mix(in srgb, var(--lv) 35%, var(--line));
+    border-radius: var(--radius-control);
+    background: var(--bg);
+    font: 500 13.5px/1.35 var(--font-sans);
+    white-space: nowrap;
+  }
+  .ico {
+    flex: none;
+    width: auto;
+    height: 1em;
+    max-width: 1.9em;
+  }
+  .tile {
+    display: inline-grid;
+    place-items: center;
+    width: 1em;
+    border-radius: 3px;
+    background: var(--faint);
+    color: var(--bg);
+    font: 700 1em/1 var(--font-mono);
+  }
+  .tile > span {
+    font-size: 0.62em;
+  }
+  .ico.dark,
+  :global(:root[data-mode='dark']) .ico.light {
+    display: none;
+  }
+  :global(:root[data-mode='dark']) .ico.dark {
+    display: block;
+  }
+  .legend {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 14px 0 0;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line);
+    list-style: none;
+    font: 500 12px/1.3 var(--font-mono);
+    color: var(--muted);
+  }
+  .legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend i {
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--lv);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--lv) 25%, var(--bg));
+  }
+  /* Phones: one lane at a time, Production first; the chips carry the level color and one legend names it. */
+  @container (max-width: 560px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+    .grid > * {
+      grid-column: 1;
+    }
+    .corner,
+    .head,
+    .cell.empty {
+      display: none;
+    }
+    .lane {
+      padding: 18px 0 8px;
+    }
+    .lane:first-of-type {
+      padding-top: 4px;
+      border-top: 0;
+    }
+    .cell {
+      padding: 0 0 6px;
+      border: 0;
+      background: none;
+    }
+    .tech {
+      border-color: color-mix(in srgb, var(--lv) 55%, var(--line));
+      background: color-mix(in srgb, var(--lv) 10%, var(--bg));
+    }
+    .legend {
+      display: flex;
+    }
+  }
+</style>
