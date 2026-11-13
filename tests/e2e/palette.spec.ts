@@ -36,7 +36,7 @@ test('typing then Enter navigates', async ({ page }) => {
 test('results show their shortcut keys and the cheat sheet is visible', async ({ page }) => {
   await page.goto('/');
   await page.keyboard.press('/');
-  const row = page.getByRole('option', { name: /Experience/ }).first();
+  const row = page.getByRole('option', { name: /Work experience/ }).first();
   await expect(row.locator('kbd')).toHaveText(['g', 'e']);
   await expect(modal(page).getByText('next / prev section')).toBeVisible();
 });

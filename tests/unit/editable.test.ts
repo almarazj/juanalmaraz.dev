@@ -12,6 +12,9 @@ describe('editable content', () => {
     expect(field('posts', 'tags').kind).toBe('list');
     expect(field('posts', 'series')).toMatchObject({ kind: 'json', optional: true });
     expect(field('experience', 'end')).toMatchObject({ kind: 'text', nullable: true });
+    expect(field('experience', 'url')).toMatchObject({ kind: 'text', optional: true });
+    expect(field('experience', 'highlights').kind).toBe('textarea');
+    expect(field('experience', 'logo')).toMatchObject({ kind: 'json', optional: true });
     expect(field('projects', 'confidential').kind).toBe('checkbox');
     expect(fieldsOf('site').map((f) => f.name)).not.toContain('resumePath');
   });

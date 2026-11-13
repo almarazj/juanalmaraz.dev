@@ -35,7 +35,7 @@ The stored preference lives in `localStorage` under `mode`; with no stored value
 
 ### Section colors
 
-Every section, its rail entry, its palette results and its chips use the same hue.
+Every section, its rail entry, and its palette results use the same hue.
 
 | Section | Light | Dark |
 |---|---|---|
@@ -74,12 +74,12 @@ The hero terminal is a near-black screen, identical in both modes; accent, ok an
 | `--tty-mag` | `#e2acff` | Numbers in JSON, the PDF in `ls` |
 | `--tty-cyan` | `#8adfe6` | `true`, `false`, `null`, git refs |
 
-### Tint chips
+### Chips
 
-Technology and topic chips use the "Tint" recipe from one source color `--c`:
+Technology and topic chips are outlined and neutral, so they sit quietly under the content in every section:
 
 ```css
-.chip { background: color-mix(in srgb, var(--c) 12%, var(--bg)); color: color-mix(in srgb, var(--c) 75%, var(--fg)); }
+.chip { padding: 0 7px; border: 1px solid var(--line); border-radius: 4px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
 ```
 
 ## Typography
@@ -89,8 +89,7 @@ IBM Plex, loaded from Google Fonts with system fallbacks.
 | Role | Face | Size / line height |
 |---|---|---|
 | UI and home body | IBM Plex Sans 400/500/600 | 16px / 1.6 |
-| Hero name | IBM Plex Sans 600 | 32px / 1.1, letter-spacing -0.015em |
-| Item titles | IBM Plex Sans 600 | 16px / 1.35 |
+| Item titles (roles, projects, degrees, posts, answers) | IBM Plex Serif 600 | 16 to 19px / 1.3 |
 | Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.08em | 13px |
 | Dates, meta, data, keys | IBM Plex Mono 400/500 | 12 to 12.5px |
 | Post body | IBM Plex Serif 400 | 18px / 1.72, measure 68ch |
@@ -147,8 +146,9 @@ Lab: [side index](https://claude.ai/artifact/GaFz1CxoNBLZpgkr7yVsNH) (variant 8+
 
 ### Experience
 
-One card per role: 44px monogram tile in the section color, role and period on one line, company and place, a 4px tenure bar (6 years = full width, max 220px), summary, Tint chips for stack.
-Lab: [experience](https://claude.ai/artifact/XTwDjaAVHrZ14FyLNbVAFw) (variant A, chips Tint).
+Titled "Work experience".
+One entry per role, without a frame, separated by hairlines: a 48px company logo (the monogram on a soft tile when there is none), the role in Plex Serif with the period on the same line, company (linked when it has a URL), place and mode, then tenure in years and the employment type in mono, the summary, highlights as square bullets, and the stack as chips.
+Lab: [work experience](https://claude.ai/artifact/U1ZTzqnmcHxVm1JSjX7stu) (option B).
 
 ### Projects
 

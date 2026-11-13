@@ -1,5 +1,6 @@
 ---
 import type { Experience } from '../../lib/content/schemas';
+import { imageProps } from '../../lib/images/url';
 import { monthLabel } from './format';
 import { tenure } from './tenure';
 
@@ -11,14 +12,19 @@ const { items, now } = Astro.props;
 ---
 
 <section id="experience" data-spy-section style="--sc: var(--c-experience); --c: var(--c-experience)">
-  <h2 class="section-label">Experience</h2>
+  <h2 class="section-label">Work experience</h2>
   {
     items.map((x) => {
-      const t = tenure(x.start, x.end, now);
-      const years = t.years.toFixed(1);
+      const highlights = (x.highlights ?? '').split('\n').map((h) => h.trim()).filter(Boolean);
       return (
         <article id={`exp-${x.id}`} data-spy-entry>
-          <span class="monogram" aria-hidden="true">{x.monogram}</span>
+          {x.logo ? (
+            <img class="logo" {...imageProps(x.logo, '48px')} alt="" width="48" height="48" loading="lazy" />
+          ) : (
+            <span class="logo monogram" aria-hidden="true">
+              {x.monogram}
+            </span>
+          )}
           <div class="body">
             <div class="head">
               <h3>{x.role}</h3>
@@ -27,15 +33,20 @@ const { items, now } = Astro.props;
               </p>
             </div>
             <p class="org">
-              {x.org} · {x.place}
+              {x.url ? <a href={x.url}>{x.org}</a> : x.org} · {x.place}
+              {x.mode && ` · ${x.mode}`}
             </p>
-            <div class="tenure">
-              <span class="track" role="img" aria-label={`${years} years at ${x.org}`}>
-                <span class="fill" style={`width: ${t.widthPct}%`} />
-              </span>
-              <span class="years" aria-hidden="true">{years} yrs</span>
-            </div>
-            <p class="summary">{x.summary}</p>
+            <p class="meta">
+              {tenure(x.start, x.end, now).years.toFixed(1)} yrs{x.type && ` · ${x.type}`}
+            </p>
+            {x.summary && <p class="summary">{x.summary}</p>}
+            {highlights.length > 0 && (
+              <ul class="highlights">
+                {highlights.map((h) => (
+                  <li>{h}</li>
+                ))}
+              </ul>
+            )}
             {x.stack.length > 0 && (
               <ul class="chips" aria-label="Stack">
                 {x.stack.map((s) => (
@@ -53,78 +64,97 @@ const { items, now } = Astro.props;
 <style>
   article {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 16px;
-    padding: 20px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-card);
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 18px;
+    padding-block: 26px;
+    border-top: 1px solid var(--line);
   }
-  article + article {
-    margin-top: 12px;
+  article:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+  .logo {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-card);
+    object-fit: cover;
   }
   .monogram {
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-card);
-    background: var(--sc);
-    color: var(--bg);
-    font: 600 14px/1 var(--font-mono);
-    letter-spacing: 0.02em;
+    background: var(--soft);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font: 600 13px/1 var(--font-mono);
   }
   .head {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: baseline;
-    gap: 2px 16px;
+    gap: 4px 16px;
   }
   h3 {
     margin: 0;
-    font: 600 16px/1.35 var(--font-sans);
+    font: 600 19px/1.3 var(--font-serif);
+    text-wrap: balance;
   }
-  .period {
+  .period,
+  .meta {
     margin: 0;
-    font: 400 12.5px/1.35 var(--font-mono);
+    font: 400 12.5px/1.5 var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--faint);
+  }
+  .period {
     white-space: nowrap;
   }
   .org {
-    margin: 2px 0 0;
+    margin: 3px 0 0;
     color: var(--muted);
     font-size: 14.5px;
   }
-  .tenure {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
+  .org a {
+    color: var(--fg);
+    font-weight: 500;
+    text-decoration: none;
   }
-  .track {
-    flex: 0 1 220px;
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--line);
-    overflow: hidden;
-  }
-  .fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--sc);
-  }
-  .years {
-    font: 400 12px/1 var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    color: var(--faint);
-    white-space: nowrap;
+  .org a:hover {
+    text-decoration: underline;
   }
   .summary {
-    margin: 10px 0 12px;
+    margin: 12px 0;
   }
   .summary:last-child {
     margin-bottom: 0;
+  }
+  .highlights {
+    display: grid;
+    gap: 4px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+    font-size: 15px;
+  }
+  .highlights:last-child {
+    margin-bottom: 0;
+  }
+  .highlights li {
+    position: relative;
+    padding-left: 16px;
+  }
+  .highlights li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 0.68em;
+    width: 5px;
+    height: 5px;
+    background: var(--sc);
+  }
+  @media (max-width: 560px) {
+    article {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
   }
 </style>

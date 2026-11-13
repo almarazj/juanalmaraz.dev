@@ -23,7 +23,7 @@ export type Field =
   | { name: string; kind: 'select'; options: string[]; optional: boolean; nullable: boolean };
 
 const MARKDOWN = new Set(['bodyMd', 'bio']);
-const TEXTAREA = new Set(['summary', 'problem', 'decision', 'result']);
+const TEXTAREA = new Set(['summary', 'highlights', 'problem', 'decision', 'result']);
 
 export function fieldsOf(collection: EditableCollection): Field[] {
   return Object.entries(editableSchemas[collection].shape).map(([name, raw]) => {
@@ -41,7 +41,7 @@ export function fieldsOf(collection: EditableCollection): Field[] {
     if (type instanceof z.ZodNumber) return { ...base, kind: 'number' };
     if (type instanceof z.ZodBoolean) return { ...base, kind: 'checkbox' };
     if (type instanceof z.ZodArray && type.element instanceof z.ZodString) return { ...base, kind: 'list' };
-    if (type instanceof z.ZodString) {
+    if (type instanceof z.ZodString || type instanceof z.ZodStringFormat) {
       return { ...base, kind: MARKDOWN.has(name) ? 'markdown' : TEXTAREA.has(name) ? 'textarea' : 'text' };
     }
     return { ...base, kind: 'json' };

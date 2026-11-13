@@ -45,7 +45,13 @@ export const ExperienceSchema = z.object({
   start: month,
   end: month.nullable(),
   place: z.string(),
+  mode: z.enum(['Remote', 'Hybrid', 'On-site']).optional(),
+  type: z.enum(['Full-time', 'Part-time', 'Contract', 'Internship']).optional(),
+  url: z.httpUrl('Use an http(s) URL').optional(),
+  logo: ImageRefSchema.optional(),
   summary: z.string(),
+  // One per line: highlights carry commas, so they cannot use the comma-separated list input.
+  highlights: z.string().optional(),
   stack: z.array(z.string()),
   order: z.number(),
 });
