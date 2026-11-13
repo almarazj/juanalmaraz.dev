@@ -83,22 +83,25 @@ for (const path of ['/', '/writing', '/writing/terraform-one-person', '/missing-
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(path);
     const footer = (await page.locator('body > .site-footer').boundingBox())!;
-    expect(footer.width).toBe(960);
-    expect(footer.x).toBe((1440 - 960) / 2);
+    expect(footer.width).toBe(1040);
+    expect(footer.x).toBe((1440 - 1040) / 2);
   });
 }
 
 for (const width of [1100, 1440]) {
-  test(`hero and content share one column at ${width}px, with the rail to its right`, async ({ page }) => {
+  test(`header, hero, content, rail and footer share one frame at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     const box = async (selector: string) => (await page.locator(selector).boundingBox())!;
-    const hero = await box('.hero');
-    const content = await box('main .sections');
-    expect([hero.x, hero.width]).toEqual([content.x, 720]);
-    if (width >= 1240) expect(content.x).toBe((width - 720) / 2);
+    const left = (width - 1040) / 2;
+    const right = left + 1040;
+    const [name, toggle, hero, content, footer] = await Promise.all(
+      ['.site-header .name', '.site-header .right', '.hero', 'main .sections', 'body > .site-footer'].map(box),
+    );
     const rail = (await page.getByRole('navigation', { name: 'On this page' }).boundingBox())!;
-    expect(rail.x).toBe(content.x + content.width + 60);
+    for (const b of [name, hero, content, footer]) expect(b.x).toBe(left);
+    for (const b of [toggle, hero, rail, footer]) expect(b.x + b.width).toBe(right);
+    expect(rail.x).toBe(content.x + content.width + 100);
   });
 }
 
