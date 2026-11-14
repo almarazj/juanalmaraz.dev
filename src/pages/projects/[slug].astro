@@ -1,0 +1,226 @@
+---
+import '../../styles/prose.css';
+import Base from '../../layouts/Base.astro';
+import SideIndex from '../../components/site/SideIndex.astro';
+import CodeCopy from '../../components/site/CodeCopy.astro';
+import ProjectCover from '../../components/home/ProjectCover.astro';
+import { getPublished, listPublished } from '../../lib/content/repo';
+import { imageUrl } from '../../lib/images/url';
+import { renderMarkdown } from '../../lib/markdown/render';
+import { SITE } from '../../lib/site';
+
+const project = await getPublished('projects', Astro.params.slug!);
+if (!project) return Astro.rewrite('/404');
+
+const { html, headings } = project.bodyMd ? await renderMarkdown(project.bodyMd) : { html: '', headings: [] };
+const all = await listPublished('projects');
+const at = all.findIndex((p) => p.id === project.id);
+const prev = all[at - 1];
+const next = all[at + 1];
+
+const shot = project.diagram ?? (project.confidential ? undefined : project.image);
+const og = shot && imageUrl(shot, Math.max(...shot.widths));
+const sections = [
+  {
+    id: 'project', title: 'This project', color: 'var(--c-projects)',
+    entries: headings.filter((h) => h.depth === 2).map((h) => ({ id: h.id, title: h.text })),
+  },
+];
+---
+
+<Base title={`${project.title} · Juan Almaraz`} description={project.summary} ogImage={og && (og.startsWith('/') ? SITE + og : og)}>
+  <main class="page with-rail">
+    <SideIndex sections={sections} />
+    <article id="project" data-spy-section style="--sc: var(--c-projects)">
+      <a class="back" href={`/#proj-${project.id}`}>← Projects</a>
+      <header class="head">
+        <p class="meta">
+          <span>{project.year}</span>
+          {project.live && <span class="live">Live</span>}
+          <span class="badge">{project.context}</span>
+          <span>{project.domains.join(' · ')}</span>
+        </p>
+        <h1>{project.title}</h1>
+        <p class="summary">{project.summary}</p>
+      </header>
+      {shot && <ProjectCover project={project} sizes="(max-width: 959px) 100vw, 760px" class="hero" loading="eager" />}
+      {html && <div class="prose" set:html={html} />}
+      {project.confidential && <p class="note">Confidential client work: no screenshots, names or figures that identify the client.</p>}
+      {
+        (project.stack.length > 0 || project.links.length > 0) && (
+          <footer class="facts">
+            {project.stack.length > 0 && (
+              <ul class="chips" aria-label="Stack">
+                {project.stack.map((s) => (
+                  <li class="chip">{s}</li>
+                ))}
+              </ul>
+            )}
+            {project.links.length > 0 && (
+              <p class="links">
+                {project.links.map((l) => (
+                  <a class="pill" href={l.url}>
+                    {l.label} ↗
+                  </a>
+                ))}
+              </p>
+            )}
+          </footer>
+        )
+      }
+      {
+        (prev || next) && (
+          <nav class="more" aria-label="More projects">
+            {prev ? (
+              <a href={`/projects/${prev.id}`} rel="prev">
+                <span>Previous project</span>
+                {prev.title}
+              </a>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <a href={`/projects/${next.id}`} rel="next" class="next">
+                <span>Next project</span>
+                {next.title}
+              </a>
+            )}
+          </nav>
+        )
+      }
+    </article>
+  </main>
+  <CodeCopy />
+</Base>
+
+<style>
+  main {
+    padding-top: 96px;
+  }
+  article {
+    display: grid;
+    gap: 24px;
+    min-width: 0;
+  }
+  .back {
+    justify-self: start;
+    font: 400 12.5px/1.5 var(--font-mono);
+    color: var(--c-projects);
+    text-decoration: none;
+  }
+  .back:hover {
+    text-decoration: underline;
+  }
+  .head,
+  .note,
+  .more {
+    max-width: 68ch;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin: 0;
+    font: 400 12.5px/1.5 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--c-projects);
+  }
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ok);
+  }
+  .live::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+  }
+  .badge {
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    font: 500 11px/1.4 var(--font-mono);
+    color: var(--muted);
+  }
+  h1 {
+    margin: 8px 0;
+    font: 600 32px/1.2 var(--font-sans);
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .summary {
+    margin: 0;
+    color: var(--muted);
+  }
+  /* The page shows the whole image; only cards crop to 16:9. */
+  article > :global(.hero) {
+    aspect-ratio: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  article > :global(.hero img) {
+    height: auto;
+  }
+  .prose {
+    --prose-accent: var(--c-projects);
+    min-width: 0;
+  }
+  .note {
+    margin: 0;
+    font: 400 12.5px/1.5 var(--font-mono);
+    color: var(--faint);
+  }
+  .facts {
+    display: grid;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+  }
+  .more {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .more a {
+    display: block;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .more a:hover {
+    border-color: var(--c-projects);
+  }
+  .more a span {
+    display: block;
+    font: 400 12px/1.5 var(--font-mono);
+    color: var(--muted);
+  }
+  .more .next {
+    grid-column: 2;
+    text-align: right;
+  }
+  @media (max-width: 680px) {
+    .more {
+      grid-template-columns: 1fr;
+    }
+    .more .next {
+      grid-column: 1;
+    }
+  }
+</style>

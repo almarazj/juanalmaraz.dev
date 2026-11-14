@@ -2,6 +2,7 @@
 import '../styles/prose.css';
 import Base from './Base.astro';
 import SideIndex from '../components/site/SideIndex.astro';
+import CodeCopy from '../components/site/CodeCopy.astro';
 import type { Post } from '../lib/content/schemas';
 import type { Heading } from '../lib/markdown/render';
 
@@ -65,6 +66,7 @@ const sections = [
       }
     </article>
   </main>
+  <CodeCopy />
 </Base>
 
 <style>
@@ -174,19 +176,4 @@ const sections = [
   addEventListener('resize', schedule);
   update();
 
-  for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
-    const code = btn.closest('.codeblock')!.querySelector('pre')!;
-    btn.addEventListener('click', async () => {
-      let label = 'Copied';
-      try {
-        await navigator.clipboard.writeText(code.textContent ?? '');
-      } catch {
-        // Clipboard refused: select the code so Ctrl+C works.
-        getSelection()?.selectAllChildren(code);
-        label = 'select it';
-      }
-      btn.textContent = label;
-      setTimeout(() => (btn.textContent = 'Copy'), 2000);
-    });
-  }
 </script>

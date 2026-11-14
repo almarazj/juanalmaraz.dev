@@ -25,7 +25,7 @@ export async function buildSearchIndex(): Promise<PaletteItem[]> {
       group: 'Experience', label: x.role, hint: `${x.org} · ${x.place}`, target: `/#exp-${x.id}`,
     })),
     ...projects.map((p) => ({
-      group: 'Projects', label: p.title, hint: short(p.summary), target: `/#proj-${p.id}`,
+      group: 'Projects', label: p.title, hint: short(p.summary), target: `/projects/${p.id}`,
     })),
     ...posts.map((p) => ({
       group: 'Writing', label: p.title, hint: short(p.summary), target: `/writing/${p.id}`,

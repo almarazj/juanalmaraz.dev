@@ -205,6 +205,13 @@ Lab: [writing](https://claude.ai/artifact/6Wkh7eCuy4pW9VkdDoG6T1) (variant 1).
 Plex Serif 18px, 68ch measure, "On this page" index on the right with "n min left", reading progress bar under the header, graphite code blocks with file name and copy button, heading anchors, callouts with a left border in the writing color, footnotes, series navigation at the end.
 Lab: [post configurator](https://claude.ai/artifact/7UQFBWdZX6Yww8hNWqBUvw).
 
+### Project page
+
+`/projects/<id>` follows the post page: "← Projects" back to the card on the home, then a mono meta line in the projects color (year, a green "Live" dot when live, the context badge, the domains), the title, the summary, and the cover only when there is a real image or diagram, shown whole instead of cropped.
+The body is free Markdown in the post's prose styles, with the projects color for heading anchors and callouts, and the right index ("This project") lists its h2s.
+Below it: a "Confidential client work" note when it applies, the stack chips and link pills, then previous and next project cards in the home's order.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (own page).
+
 ### Command palette
 
 Opens with `/` (the hint shown), `⌘K` or `Ctrl+K`, or the header field.
