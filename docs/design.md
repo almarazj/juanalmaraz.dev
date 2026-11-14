@@ -194,7 +194,7 @@ Lab: [technologies board](https://claude.ai/artifact/MeJdkBwmn9saTj9KabD8Zb) (ch
 
 Left: a stack of polaroid photos; drag the top one away (over 90px) to send it to the back, tap or Enter or arrows also cycle; counter "1 / n".
 Right: short bio paragraph.
-Below: "Quick questions" as rows, question in mono on the left, answer large with an icon in its color on the right, plus a context line and optional link (Letterboxd).
+Below: "Quick questions" as rows, question in mono on the left, answer large with an icon in its color on the right, plus a context line and an optional link.
 Lab: [about round 3](https://claude.ai/artifact/QVED8hAiTg1ZtixHnjrpvh) (format A).
 
 ### Writing on the home page

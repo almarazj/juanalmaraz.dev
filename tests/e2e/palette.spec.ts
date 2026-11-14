@@ -26,7 +26,7 @@ test('/ and Ctrl+K open the palette, Esc closes and restores focus', async ({ pa
 test('typing then Enter navigates', async ({ page }) => {
   await page.goto('/');
   await page.keyboard.press('/');
-  await page.keyboard.type('boca');
+  await page.keyboard.type('ficciones');
   await expect(page.getByRole('option')).toHaveCount(1);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#about-questions$/);
