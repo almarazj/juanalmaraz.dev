@@ -16,6 +16,8 @@ describe('editable content', () => {
     expect(field('experience', 'highlights').kind).toBe('textarea');
     expect(field('experience', 'logo')).toMatchObject({ kind: 'json', optional: true });
     expect(field('projects', 'confidential').kind).toBe('checkbox');
+    expect(field('projects', 'domains')).toMatchObject({ kind: 'multi', options: ['Backend', 'ML', 'DSP', 'Acoustics', 'Electronics'] });
+    expect(field('projects', 'bodyMd')).toMatchObject({ kind: 'markdown', optional: true });
     expect(fieldsOf('site').map((f) => f.name)).not.toContain('resumePath');
   });
 
@@ -27,6 +29,16 @@ describe('editable content', () => {
     expect(errors).toEqual({});
     expect(data).toEqual(doc);
     expect(validate('posts', data).ok).toBe(true);
+  });
+
+  it('reads picked domains as a list and requires at least one', () => {
+    const domains = field('projects', 'domains');
+    expect(toFormValue(domains, ['Backend', 'DSP'])).toBe('Backend, DSP');
+    expect(fromForm([domains], { domains: 'Backend,DSP' }).data).toEqual({ domains: ['Backend', 'DSP'] });
+    const { data } = fromForm([domains], { domains: '' });
+    expect(data).toEqual({ domains: [] });
+    const result = validate('projects', data);
+    expect(!result.ok && result.errors.domains).toBe('Pick at least one');
   });
 
   it('maps empty optional and nullable fields to undefined and null', () => {

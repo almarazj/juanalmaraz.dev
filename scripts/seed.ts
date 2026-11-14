@@ -3,7 +3,7 @@ import { putEntry } from '../src/lib/feed/store';
 import { saveWithRevision, type Collection } from '../src/lib/content/repo';
 import {
   AboutSchema, CertificateSchema, EducationSchema, ExperienceSchema,
-  FeedEntrySchema, PostSchema, ProjectSchema, SiteSchema,
+  FeedEntrySchema, PostSchema, PROJECT_CONTEXTS, PROJECT_DOMAINS, ProjectSchema, SiteSchema,
 } from '../src/lib/content/schemas';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { config, s3 } from '../src/lib/aws';
@@ -87,18 +87,24 @@ const experience = [
   },
 ];
 
+const filler = (n: number) => Array(n).fill('A sentence of sample prose that only exists to give the page some length.').join(' ');
 // SAMPLE-ONLY: project copy is placeholder.
-const project = (title: string, group: 'backend' | 'engineering', year: number, order: number, extra: object = {}) => ({
-  title, group, year, summary: `${title} (sample summary).`, stack: [], links: [], confidential: false, order, status: 'published', ...extra,
+type Context = (typeof PROJECT_CONTEXTS)[number];
+type Domain = (typeof PROJECT_DOMAINS)[number];
+const project = (title: string, context: Context, domains: Domain[], year: number, order: number, extra: object = {}) => ({
+  title, context, domains, live: false, year, summary: `${title} (sample summary).`, stack: [], links: [], confidential: false, order, status: 'published', ...extra,
 });
 const projects = [
-  ['juanalmaraz-dev', project('juanalmaraz.dev', 'backend', 2026, 1, { stack: ['Astro', 'DynamoDB', 'Lambda'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }] })],
-  ['document-ingestion', project('Document ingestion pipeline', 'backend', 2025, 2, { confidential: true, stack: ['Node.js', 'SQS', 'Postgres'] })],
-  ['webhook-relay', project('Webhook relay', 'backend', 2025, 3, { stack: ['Node.js', 'SNS'] })],
-  ['room-impulse-response', project('Room impulse response tool', 'engineering', 2023, 4, { stack: ['Python', 'Acoustics'], image: rirGui })],
-  ['phase-vocoder', project('Phase vocoder time-stretching', 'engineering', 2022, 5, { stack: ['Python', 'DSP'], image: pv })],
-  ['compressor-hardware', project('Compressor hardware design', 'engineering', 2022, 6, { stack: ['Electronics'], image: render })],
-  ['vibration-isolation', project('Vibration isolation system', 'engineering', 2021, 7, { stack: ['Arduino', 'Sensors'], image: mpu })],
+  ['juanalmaraz-dev', project('juanalmaraz.dev', 'Personal', ['Backend'], 2026, 1, {
+    live: true, stack: ['Astro', 'DynamoDB', 'Lambda'], links: [{ label: 'Source', url: 'https://github.com/almarazj/juanalmaraz.dev' }],
+    bodyMd: `## Why\n\n${filler(2)}\n\n## How it runs\n\n${filler(3)}\n`,
+  })],
+  ['document-ingestion', project('Document ingestion pipeline', 'Client', ['Backend'], 2025, 2, { live: true, confidential: true, stack: ['Node.js', 'SQS', 'Postgres'] })],
+  ['webhook-relay', project('Webhook relay', 'Work', ['Backend'], 2025, 3, { stack: ['Node.js', 'SNS'] })],
+  ['room-impulse-response', project('Room impulse response tool', 'Academic', ['Acoustics', 'DSP'], 2023, 4, { stack: ['Python'], image: rirGui })],
+  ['phase-vocoder', project('Phase vocoder time-stretching', 'Academic', ['DSP'], 2022, 5, { stack: ['Python'], image: pv })],
+  ['compressor-hardware', project('Compressor hardware design', 'Academic', ['Electronics'], 2022, 6, { image: render })],
+  ['vibration-isolation', project('Vibration isolation system', 'Academic', ['Acoustics', 'Electronics'], 2021, 7, { stack: ['Arduino', 'Sensors'], image: mpu })],
 ] as const;
 
 const education = [
@@ -153,7 +159,6 @@ const site = {
 };
 
 // SAMPLE-ONLY: post bodies are placeholders.
-const filler = (n: number) => Array(n).fill('A sentence of sample prose that only exists to give the page some length.').join(' ');
 const post2Body = `## Batching to stay free
 
 ${filler(6)}

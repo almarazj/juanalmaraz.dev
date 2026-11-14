@@ -23,8 +23,9 @@ const [experience, projects, degrees, certificates, postDocs, about, site] = awa
   getSingleton('about/main'),
   getSingleton('site/main'),
 ]);
-const backend = projects.filter((p) => p.group === 'backend');
-const engineering = projects.filter((p) => p.group === 'engineering');
+// shortcut: keeps the two-group layout until the Projects section becomes one filterable grid.
+const backend = projects.filter((p) => p.domains.includes('Backend'));
+const engineering = projects.filter((p) => !p.domains.includes('Backend'));
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
 const board = technologyBoard({

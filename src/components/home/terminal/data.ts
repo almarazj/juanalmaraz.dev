@@ -25,8 +25,6 @@ export interface TerminalData {
 const md = (body: string, href?: string): FileNode => ({ t: 'f', kind: 'md', body, href });
 const dir = (entries: [string, FileNode][], href: string): DirNode => ({ t: 'd', c: Object.fromEntries(entries), href });
 const postDate = (t: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(t);
-const section = (title: string, body?: string) => (body ? `\n\n## ${title}\n${body}` : '');
-
 export function terminalData(c: TerminalContent, build: Build): TerminalData {
   const profile = me(c.site);
   const tech = stack(c.experience);
@@ -51,10 +49,10 @@ export function terminalData(c: TerminalContent, build: Build): TerminalData {
   const projects = c.projects.map((p): [string, FileNode] => [
     `${p.id}.md`,
     md(
-      `# ${p.title}\n${[p.year, p.group, ...p.stack, ...(p.confidential ? ['confidential'] : [])].join(' · ')}\n\n${p.summary}`
-        + section('Problem', p.problem) + section('Decision', p.decision) + section('Result', p.result)
+      `# ${p.title}\n${[p.year, p.context, ...p.domains, ...(p.live ? ['live'] : []), ...p.stack, ...(p.confidential ? ['confidential'] : [])].join(' · ')}\n\n${p.summary}`
+        + (p.bodyMd ? `\n\n${p.bodyMd.trim()}` : '')
         + (p.links.length ? `\n\n${p.links.map((l) => `- ${l.label}: ${l.url}`).join('\n')}` : ''),
-      p.links[0]?.url ?? `/#proj-${p.group}`,
+      p.links[0]?.url ?? '/#projects',
     ),
   ]);
   const posts = c.posts.map((p): [string, FileNode] => [
