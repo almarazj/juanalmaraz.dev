@@ -96,7 +96,12 @@ const fallback = { color: 'var(--c-about)', svg: '<circle cx="12" cy="12" r="9"/
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 4px 24px;
     padding: 14px 0;
-    border-bottom: 1px solid var(--line);
+  }
+  .row + .row {
+    border-top: 1px solid var(--line);
+  }
+  .row:last-child {
+    padding-bottom: 0;
   }
   dt {
     font: 400 12.5px/1.9 var(--font-mono);

@@ -59,11 +59,12 @@ a {
   }
 }
 
+/* A section starts with space and this label alone; lines are only for dividing entries inside it. */
 .section-label {
-  margin: 0 0 24px;
-  font: 600 13px/1.4 var(--font-mono);
+  margin: 0 0 26px;
+  font: 600 15px/1.4 var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--sc);
 }
 

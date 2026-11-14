@@ -49,7 +49,7 @@
   --radius-card: 8px;
   --radius-panel: 12px;
   --radius-pill: 999px;
-  --section-gap: 44px;
+  --section-gap: 72px;
   /* One frame for header, page and footer; the rail and its gap sit inside it, right of the content. */
   --page-max: 1040px;
   --hero-term-width: 800px;

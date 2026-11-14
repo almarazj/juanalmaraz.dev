@@ -101,7 +101,7 @@ IBM Plex, loaded from Google Fonts with system fallbacks.
 | UI and home body | IBM Plex Sans 400/500/600 | 16px / 1.6 |
 | Item titles (roles, projects, degrees, posts, answers) | IBM Plex Serif 600 | 16 to 19px / 1.3 |
 | Name in the header | IBM Plex Serif 600 | 18px / 1 |
-| Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.08em | 13px |
+| Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.1em | 15px |
 | Dates, meta, data, keys | IBM Plex Mono 400/500 | 12 to 12.5px |
 | Post body | IBM Plex Serif 400 | 18px / 1.72, measure 68ch |
 | Post headings | IBM Plex Sans 600 | 1.4em |
@@ -111,7 +111,9 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 
 ## Shape and spacing
 
-- Spacing steps: 4, 8, 12, 16, 24, 32, 44 px; sections are separated by 44px.
+- Spacing steps: 4, 8, 12, 16, 24, 32, 44, 72 px; sections are separated by 72px (`--section-gap`), also below the hero and above the footer.
+- A section starts with that space and its label alone, with no rule under it; hairlines only divide entries inside a section.
+  Lab: [section heads](https://claude.ai/artifact/D5GwjcxVNBd578GwMymxsa) (E, space only).
 - Radius: 6px for controls and stamps, 8px for cards, 10 to 12px for panels and popovers, 999px for pills.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.

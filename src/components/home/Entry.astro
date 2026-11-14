@@ -71,7 +71,15 @@ const { id, logo, monogram, title, period, org, url, place, mode, meta, summary,
     grid-template-columns: 48px minmax(0, 1fr);
     gap: 18px;
     padding-block: 26px;
+  }
+  article + article {
     border-top: 1px solid var(--line);
+  }
+  article:first-of-type {
+    padding-top: 0;
+  }
+  article:last-child {
+    padding-bottom: 0;
   }
   /* The border keeps white logo tiles from dissolving into the light page. */
   .logo {
