@@ -26,8 +26,8 @@ const [experience, projects, degrees, certificates, postDocs, about, site] = awa
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
 const board = technologyBoard({
-  production: experience.flatMap((x) => x.stack),
-  side: projects.flatMap((p) => p.stack),
+  production: [...experience, ...projects.filter((p) => p.live)].flatMap((x) => x.stack),
+  side: projects.filter((p) => !p.live).flatMap((p) => p.stack),
   tinkering: site.tinkering ?? [],
 });
 const terminal = terminalData({ site, about, experience, projects, education: degrees, certificates, posts: postDocs }, buildInfo);

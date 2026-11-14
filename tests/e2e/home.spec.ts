@@ -164,6 +164,9 @@ test('technologies board sits between education and projects with one column per
   const board = page.locator('#technologies');
   await expect(board.locator('.head')).toHaveText([/Production\s*\d+/, /Side projects\s*\d+/, /Tinkering\s*\d+/]);
   await expect(board.locator('.lv-production .tech', { hasText: 'Python' })).toBeVisible();
+  // juanalmaraz.dev is live, so its stack counts as production; the webhook relay is not.
+  await expect(board.locator('.lv-production .tech', { hasText: 'Astro' })).toBeVisible();
+  await expect(board.locator('.lv-side .tech', { hasText: 'SNS' })).toBeVisible();
   await expect(board.locator('.legend')).toBeHidden();
 });
 

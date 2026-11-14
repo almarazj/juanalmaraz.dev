@@ -183,7 +183,7 @@ Lab: [education round 2](https://claude.ai/artifact/4UnwsSnnQ3zz7KQB3XsJzn) (var
 
 A kanban with swimlanes: columns Tinkering, Side projects and Production (low to high, each with its count and its level color on a 3px top edge, header and a light column wash), and one lane per category (Languages, Frameworks, Databases, Testing, Cloud & infra) with the lane name in mono on the left.
 Each technology is a `.tag` with its Devicon icon at text height and its name, its border tinted with the level color; AWS services without an icon show a letter tile.
-Production comes from the roles' stacks and Side projects from the projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
+Production comes from the roles' stacks and the stacks of live projects, Side projects from the other projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
 Only names in the catalog (`src/lib/content/technologies.ts`) appear, so non-software tags stay off; empty lanes are left out.
 On phones the lanes stack, Production first in each, the chips carry the level color, and one legend (Tinkering, Side projects, Production) closes the section.
 Lab: [technologies board](https://claude.ai/artifact/MeJdkBwmn9saTj9KabD8Zb) (chips, one color per column).
