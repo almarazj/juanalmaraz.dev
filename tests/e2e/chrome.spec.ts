@@ -38,6 +38,8 @@ test('rail entry click scrolls, marks it on, and expands only the current sectio
 
   const entry = rail.locator('a.entry[href="#proj-phase-vocoder"]');
   await page.evaluate(() => document.querySelector('#projects')!.scrollIntoView());
+  // The scrollspy reveals the entries a frame later; clicking before that hits a rail still changing height.
+  await expect(rail.locator('[data-section="projects"] .entries')).toBeVisible();
   await entry.click();
   await expect(entry).toHaveClass(/\bon\b/);
   await expect(rail.locator('[data-section="projects"] .entries')).toBeVisible();
@@ -84,6 +86,7 @@ test('clicking the last rail entry marks it on', async ({ page }) => {
   const rail = page.getByRole('navigation', { name: 'On this page' });
   const last = rail.locator('a.entry[href="#about-questions"]');
   await page.evaluate(() => document.querySelector('#about')!.scrollIntoView());
+  await expect(rail.locator('[data-section="about"] .entries')).toBeVisible();
   await last.click();
   await expect(last).toHaveClass(/\bon\b/);
   await expect(last).toHaveAttribute('aria-current', 'location');
