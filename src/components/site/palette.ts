@@ -21,7 +21,7 @@ export function search(index: PaletteItem[], q: string): PaletteItem[] {
 
 export function dotColor(i: PaletteItem): string {
   const name = i.color ?? (i.group === 'Sections' ? i.label.toLowerCase() : i.group.toLowerCase());
-  return ['experience', 'projects', 'engineering', 'education', 'writing', 'about'].includes(name)
+  return ['experience', 'projects', 'education', 'writing', 'about'].includes(name)
     ? `var(--c-${name})`
     : 'var(--faint)';
 }

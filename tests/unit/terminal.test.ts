@@ -19,7 +19,7 @@ const content: TerminalContent = {
     { id: 'backend', role: 'Backend Engineer', org: 'Acme', monogram: 'AC', start: '2024-04', end: null, place: 'Buenos Aires, AR', summary: 'Builds APIs.', stack: ['Node.js', 'GCP'], order: 1 },
   ],
   projects: [
-    { id: 'relay', title: 'Webhook <relay>', group: 'backend', year: 2025, summary: 'Relays events.', stack: ['Node.js'], links: [{ label: 'Source', url: 'https://github.com/x/relay' }], confidential: false, order: 1, status: 'published' },
+    { id: 'relay', title: 'Webhook <relay>', context: 'Work', live: true, domains: ['Backend'], year: 2025, summary: 'Relays events.', bodyMd: '## Why\n\nRetries.', stack: ['Node.js'], links: [{ label: 'Source', url: 'https://github.com/x/relay' }], confidential: false, order: 1, status: 'published' },
   ],
   education: [{ id: 'sound', title: 'Sound Engineering', school: 'UNTREF', start: '2016-03', end: '2024-03', summary: 'Degree.' }],
   certificates: [{ id: 'ef', name: 'EF SET English Certificate', issuer: 'EF SET', year: 2025, level: 'C1', order: 1 }],
@@ -178,7 +178,8 @@ describe('commands', () => {
   it('cat prints content escaped and linkified', async () => {
     const { env } = makeEnv();
     const res = await run('cat projects/relay.md', env);
-    expect(res.text).toContain('# Webhook <relay>');
+    expect(res.text).toContain('# Webhook <relay>\n2025 · Work · Backend · live · Node.js');
+    expect(res.text).toContain('## Why\n\nRetries.');
     expect(toHTML(res)).toContain('Webhook &lt;relay&gt;');
     expect(toHTML(res)).toContain('<a href="https://github.com/x/relay"');
     expect((await run('cat resume.pdf', env)).status).toBe(1);

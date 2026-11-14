@@ -1,5 +1,6 @@
 /* Rendered Markdown: post pages and the admin editor preview share these. */
 .prose {
+  --prose-accent: var(--c-writing);
   max-width: 68ch;
   font: 400 18px/1.72 var(--font-serif);
   overflow-wrap: break-word;
@@ -25,7 +26,7 @@
   font: 600 1.4em/1.3 var(--font-sans);
   left: -1.1em;
   padding-right: 0.3em;
-  color: var(--c-writing);
+  color: var(--prose-accent);
   text-decoration: none;
   opacity: 0;
 }
@@ -90,8 +91,8 @@
 .prose .callout {
   margin: 0 0 1.4em;
   padding: 4px 16px;
-  border-left: 3px solid var(--c-writing);
-  background: color-mix(in srgb, var(--c-writing) 8%, var(--bg));
+  border-left: 3px solid var(--prose-accent);
+  background: color-mix(in srgb, var(--prose-accent) 8%, var(--bg));
   border-radius: 0 6px 6px 0;
 }
 .prose .callout p {
@@ -104,7 +105,7 @@
   font: 600 12px/1 var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--c-writing);
+  color: var(--prose-accent);
 }
 .prose sup a {
   text-decoration: none;

@@ -40,8 +40,7 @@ Every section, its rail entry, and its palette results use the same hue.
 | Section | Light | Dark |
 |---|---|---|
 | Experience | `#2457c5` | `#86a8ff` |
-| Projects (backend group) | `#c2410c` | `#fb8a4c` |
-| Projects (engineering group) | `#0e7c86` | `#4cc3cc` |
+| Projects | `#c2410c` | `#fb8a4c` |
 | Education | `#2f7a4f` | `#7cc79a` |
 | Writing | `#7a3fb8` | `#c49af0` |
 | About | `#b4366f` | `#f07aae` |
@@ -86,6 +85,13 @@ Technology and topic chips are outlined and neutral, so they sit quietly under t
 .chip { padding: 0 7px; border: 1px solid var(--line); border-radius: 4px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
 ```
 
+### Tags
+
+`.tag` is the larger box version: 6px radius, `padding: 3px 9px`, Plex Mono 12.5px in `--muted`, on `--bg`.
+The Technologies board uses it for each technology, and the Projects domain filter uses it as a choice.
+As a choice it is a `label` around a visually hidden radio: hover gives a `--faint` border and `--fg` text, the checked one gets a `--soft` fill, `--fg` border and `--fg` text, and keyboard focus shows the focus ring on the tag.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (filter 3, Soft).
+
 ## Typography
 
 IBM Plex, loaded from Google Fonts with system fallbacks.
@@ -95,7 +101,7 @@ IBM Plex, loaded from Google Fonts with system fallbacks.
 | UI and home body | IBM Plex Sans 400/500/600 | 16px / 1.6 |
 | Item titles (roles, projects, degrees, posts, answers) | IBM Plex Serif 600 | 16 to 19px / 1.3 |
 | Name in the header | IBM Plex Serif 600 | 18px / 1 |
-| Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.08em | 13px |
+| Section labels | IBM Plex Mono 600, uppercase, letter-spacing 0.1em | 15px |
 | Dates, meta, data, keys | IBM Plex Mono 400/500 | 12 to 12.5px |
 | Post body | IBM Plex Serif 400 | 18px / 1.72, measure 68ch |
 | Post headings | IBM Plex Sans 600 | 1.4em |
@@ -105,7 +111,9 @@ Use `font-variant-numeric: tabular-nums` wherever digits line up.
 
 ## Shape and spacing
 
-- Spacing steps: 4, 8, 12, 16, 24, 32, 44 px; sections are separated by 44px.
+- Spacing steps: 4, 8, 12, 16, 24, 32, 44, 72 px; sections are separated by 72px (`--section-gap`), also below the hero and above the footer.
+- A section starts with that space and its label alone, with no rule under it; hairlines only divide entries inside a section.
+  Lab: [section heads](https://claude.ai/artifact/D5GwjcxVNBd578GwMymxsa) (E, space only).
 - Radius: 6px for controls and stamps, 8px for cards, 10 to 12px for panels and popovers, 999px for pills.
 - Borders are 1px `--line`; cards get a border, never a shadow, except floating layers (tooltip, palette).
 - Page gutter is at least 16px, written with `max(16px, env(safe-area-inset-*))`.
@@ -160,11 +168,11 @@ Lab: [work experience](https://claude.ai/artifact/U1ZTzqnmcHxVm1JSjX7stu) (optio
 
 ### Projects
 
-Two groups.
-Backend: a horizontal, scroll-snapping strip of media cards (132px thumbnail or architecture diagram on the left, title, year, 3-line summary, chips, link pills) with ← → buttons.
-"Earlier engineering work": a compact two-column list with a 44px thumbnail, title, year and tags.
-Confidential projects carry a "conf." badge and a diagram instead of screenshots.
-Lab: [projects round 2](https://claude.ai/artifact/SDKH9WPFWmJXN54NyEExLW) (variant D).
+One grid of cover cards for every project, three to a row in the content column and one on phones.
+Each card: a 16:9 cover (the diagram, else the image unless confidential, else a line drawing for its first domain in the projects color), then the year on the left and, on the right, a green live dot (only for live projects; a "Live in production" tooltip on hover and keyboard focus) and the context badge (Work, Client, Personal, Academic); the title in Plex Serif linking to `/projects/<id>`, the domains in mono with "confidential" when it applies, a 3-line summary, and up to three stack chips plus "+n".
+Above the grid, a domain filter of `.tag` choices with counts, "All" first and only domains that have projects; it is radios and CSS `:has()`, so it works without JavaScript.
+The side index lists each project.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (B · Cover, filter 3 Soft).
 
 ### Education
 
@@ -176,8 +184,8 @@ Lab: [education round 2](https://claude.ai/artifact/4UnwsSnnQ3zz7KQB3XsJzn) (var
 ### Technologies
 
 A kanban with swimlanes: columns Tinkering, Side projects and Production (low to high, each with its count and its level color on a 3px top edge, header and a light column wash), and one lane per category (Languages, Frameworks, Databases, Testing, Cloud & infra) with the lane name in mono on the left.
-Each technology is a chip with its Devicon icon at text height and its name; AWS services without an icon show a letter tile.
-Production comes from the roles' stacks and Side projects from the projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
+Each technology is a `.tag` with its Devicon icon at text height and its name, its border tinted with the level color; AWS services without an icon show a letter tile.
+Production comes from the roles' stacks and the stacks of live projects, Side projects from the other projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
 Only names in the catalog (`src/lib/content/technologies.ts`) appear, so non-software tags stay off; empty lanes are left out.
 On phones the lanes stack, Production first in each, the chips carry the level color, and one legend (Tinkering, Side projects, Production) closes the section.
 Lab: [technologies board](https://claude.ai/artifact/MeJdkBwmn9saTj9KabD8Zb) (chips, one color per column).
@@ -198,6 +206,13 @@ Lab: [writing](https://claude.ai/artifact/6Wkh7eCuy4pW9VkdDoG6T1) (variant 1).
 
 Plex Serif 18px, 68ch measure, "On this page" index on the right with "n min left", reading progress bar under the header, graphite code blocks with file name and copy button, heading anchors, callouts with a left border in the writing color, footnotes, series navigation at the end.
 Lab: [post configurator](https://claude.ai/artifact/7UQFBWdZX6Yww8hNWqBUvw).
+
+### Project page
+
+`/projects/<id>` follows the post page: "← Projects" back to the card on the home, then a mono meta line in the projects color (year, a green "Live" dot when live, the context badge, the domains), the title, the summary, and the cover only when there is a real image or diagram, shown whole instead of cropped.
+The body is free Markdown in the post's prose styles, with the projects color for heading anchors and callouts, and the right index ("This project") lists its h2s.
+Below it: a "Confidential client work" note when it applies, the stack chips and link pills, then previous and next project cards in the home's order.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (own page).
 
 ### Command palette
 

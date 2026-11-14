@@ -36,13 +36,13 @@ test('rail entry click scrolls, marks it on, and expands only the current sectio
   await expect(rail.locator('[data-section="experience"] .entries')).toBeVisible();
   await expect(rail.locator('[data-section="projects"] .entries')).toBeHidden();
 
-  const entry = rail.locator('a.entry[href="#proj-engineering"]');
+  const entry = rail.locator('a.entry[href="#proj-phase-vocoder"]');
   await page.evaluate(() => document.querySelector('#projects')!.scrollIntoView());
   await entry.click();
   await expect(entry).toHaveClass(/\bon\b/);
   await expect(rail.locator('[data-section="projects"] .entries')).toBeVisible();
   await expect(rail.locator('[data-section="experience"] .entries')).toBeHidden();
-  const top = await page.locator('#proj-engineering').evaluate((el) => el.getBoundingClientRect().top);
+  const top = await page.locator('#proj-phase-vocoder').evaluate((el) => el.getBoundingClientRect().top);
   expect(top).toBeLessThan(160);
 });
 

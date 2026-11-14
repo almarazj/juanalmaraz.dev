@@ -13,15 +13,15 @@ test('rss lists only published posts', async ({ request }) => {
   expect(xml).not.toContain('draft-post');
 });
 
-test('sitemap lists home, writing and published posts', async ({ request }) => {
+test('sitemap lists home, writing, published posts and projects', async ({ request }) => {
   const xml = await (await request.get('/sitemap.xml')).text();
-  for (const path of ['/', '/writing', '/writing/live-request-log', '/writing/terraform-one-person']) {
+  for (const path of ['/', '/writing', '/writing/live-request-log', '/writing/terraform-one-person', '/projects/juanalmaraz-dev']) {
     expect(xml).toContain(`<loc>${ORIGIN}${path}</loc>`);
   }
   expect(xml).not.toContain('draft-post');
 });
 
-for (const path of ['/', '/writing', '/writing/live-request-log']) {
+for (const path of ['/', '/writing', '/writing/live-request-log', '/projects/juanalmaraz-dev']) {
   test(`${path} has OG tags and a canonical URL`, async ({ page }) => {
     await page.goto(path);
     for (const p of ['og:title', 'og:description', 'og:image']) {

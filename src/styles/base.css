@@ -59,11 +59,12 @@ a {
   }
 }
 
+/* A section starts with space and this label alone; lines are only for dividing entries inside it. */
 .section-label {
-  margin: 0 0 24px;
-  font: 600 13px/1.4 var(--font-mono);
+  margin: 0 0 26px;
+  font: 600 15px/1.4 var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--sc);
 }
 
@@ -83,6 +84,41 @@ a {
   border-radius: 4px;
   font: 400 12px/1.6 var(--font-mono);
   color: var(--muted);
+}
+
+/* Box tag: technologies on the board and the domain filter under Projects. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  font: 400 12.5px/1.5 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* As a choice: a label wrapping a visually hidden radio or checkbox. */
+label.tag {
+  cursor: pointer;
+}
+
+label.tag:hover {
+  border-color: var(--faint);
+  color: var(--fg);
+}
+
+.tag:has(:checked) {
+  border-color: var(--fg);
+  background: var(--soft);
+  color: var(--fg);
+}
+
+.tag:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .pill {

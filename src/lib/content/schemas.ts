@@ -21,14 +21,17 @@ export const PostSchema = z.object({
   series: z.object({ id: z.string(), title: z.string(), part: z.number().int().positive() }).optional(),
 });
 
+export const PROJECT_CONTEXTS = ['Work', 'Client', 'Personal', 'Academic'] as const;
+export const PROJECT_DOMAINS = ['Backend', 'ML', 'DSP', 'Acoustics', 'Electronics'] as const;
+
 export const ProjectSchema = z.object({
   title: z.string().min(1, 'Required'),
-  group: z.enum(['backend', 'engineering']),
+  context: z.enum(PROJECT_CONTEXTS),
+  live: z.boolean(),
+  domains: z.array(z.enum(PROJECT_DOMAINS)).min(1, 'Pick at least one'),
   year: z.number().int(),
   summary: z.string(),
-  problem: z.string().optional(),
-  decision: z.string().optional(),
-  result: z.string().optional(),
+  bodyMd: z.string().optional(),
   stack: z.array(z.string()),
   links: z.array(z.object({ label: z.string(), url: z.httpUrl('Use an http(s) URL') })),
   image: ImageRefSchema.optional(),

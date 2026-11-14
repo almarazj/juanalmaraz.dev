@@ -20,10 +20,10 @@ export const ID = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 export type Field =
   | { name: string; kind: 'text' | 'textarea' | 'markdown' | 'number' | 'checkbox' | 'list' | 'json'; optional: boolean; nullable: boolean }
-  | { name: string; kind: 'select'; options: string[]; optional: boolean; nullable: boolean };
+  | { name: string; kind: 'select' | 'multi'; options: string[]; optional: boolean; nullable: boolean };
 
 const MARKDOWN = new Set(['bodyMd', 'bio']);
-const TEXTAREA = new Set(['summary', 'highlights', 'problem', 'decision', 'result']);
+const TEXTAREA = new Set(['summary', 'highlights']);
 
 export function fieldsOf(collection: EditableCollection): Field[] {
   return Object.entries(editableSchemas[collection].shape).map(([name, raw]) => {
@@ -40,6 +40,7 @@ export function fieldsOf(collection: EditableCollection): Field[] {
     if (type instanceof z.ZodEnum) return { ...base, kind: 'select', options: type.options.map(String) };
     if (type instanceof z.ZodNumber) return { ...base, kind: 'number' };
     if (type instanceof z.ZodBoolean) return { ...base, kind: 'checkbox' };
+    if (type instanceof z.ZodArray && type.element instanceof z.ZodEnum) return { ...base, kind: 'multi', options: type.element.options.map(String) };
     if (type instanceof z.ZodArray && type.element instanceof z.ZodString) return { ...base, kind: 'list' };
     if (type instanceof z.ZodString || type instanceof z.ZodStringFormat) {
       return { ...base, kind: MARKDOWN.has(name) ? 'markdown' : TEXTAREA.has(name) ? 'textarea' : 'text' };
@@ -52,7 +53,7 @@ export function fieldsOf(collection: EditableCollection): Field[] {
 export function toFormValue(field: Field, value: unknown): string | boolean {
   if (field.kind === 'checkbox') return Boolean(value);
   if (value === undefined || value === null) return '';
-  if (field.kind === 'list') return (value as string[]).join(', ');
+  if (field.kind === 'list' || field.kind === 'multi') return (value as string[]).join(', ');
   if (field.kind === 'json') return JSON.stringify(value, null, 2);
   return String(value);
 }
@@ -70,14 +71,14 @@ export function fromForm(fields: Field[], values: Record<string, string | boolea
       continue;
     }
     const text = typeof raw === 'string' ? raw.trim() : '';
-    if (text === '' && f.kind !== 'list' && (f.optional || f.nullable)) {
+    if (text === '' && f.kind !== 'list' && f.kind !== 'multi' && (f.optional || f.nullable)) {
       data[f.name] = f.nullable ? null : undefined;
       continue;
     }
     if (f.kind === 'number') {
       data[f.name] = text === '' ? Number.NaN : Number(text);
       if (Number.isNaN(data[f.name])) errors[f.name] = text === '' ? 'Required' : 'Enter a number';
-    } else if (f.kind === 'list') {
+    } else if (f.kind === 'list' || f.kind === 'multi') {
       data[f.name] = text.split(',').map((s) => s.trim()).filter(Boolean);
     } else if (f.kind === 'json') {
       try {

@@ -105,7 +105,12 @@ const original = (c: Certificate) => c.verifyUrl ?? (c.file && imageUrl(c.file, 
     grid-template-columns: 48px minmax(0, 1fr);
     gap: 18px;
     padding: 20px 0;
-    border-bottom: 1px solid var(--line);
+  }
+  .row + .row {
+    border-top: 1px solid var(--line);
+  }
+  .row:last-child {
+    padding-bottom: 0;
   }
   .key {
     margin: 0;

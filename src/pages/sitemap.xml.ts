@@ -4,11 +4,12 @@ import { cacheHeaders } from '../lib/http/cache';
 import { SITE } from '../lib/site';
 
 export const GET: APIRoute = async () => {
-  const posts = await listPublished('posts');
+  const [posts, projects] = await Promise.all([listPublished('posts'), listPublished('projects')]);
   const urls: { path: string; lastmod?: string }[] = [
     { path: '/' },
     { path: '/writing' },
     ...posts.map((p) => ({ path: `/writing/${p.id}`, lastmod: new Date(p.updatedAt).toISOString() })),
+    ...projects.map((p) => ({ path: `/projects/${p.id}` })),
   ];
   const body = urls
     .map((u) => `<url><loc>${SITE}${u.path}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`)

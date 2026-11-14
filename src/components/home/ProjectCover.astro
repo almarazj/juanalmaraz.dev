@@ -1,0 +1,69 @@
+---
+import type { Project } from '../../lib/content/schemas';
+import { imageProps } from '../../lib/images/url';
+import { projectArt } from './project-art';
+
+interface Props {
+  project: Project;
+  sizes: string;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+}
+const { project: p, sizes, class: className, loading = 'lazy' } = Astro.props;
+// Confidential work never shows a screenshot; a diagram is fine.
+const image = p.diagram ?? (p.confidential ? undefined : p.image);
+---
+
+<div class:list={['cover', className]}>
+  {
+    image ? (
+      <img {...imageProps(image, sizes)} alt={image.alt} loading={loading} />
+    ) : (
+      <svg viewBox="0 0 160 90" aria-hidden="true" set:html={projectArt(p.domains[0])} />
+    )
+  }
+</div>
+
+<style>
+  .cover {
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    background: var(--soft);
+    color: var(--c-projects);
+  }
+  img,
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  svg :global(.box) {
+    fill: color-mix(in srgb, currentColor 12%, var(--bg));
+    stroke: currentColor;
+  }
+  svg :global(.lbl) {
+    fill: color-mix(in srgb, currentColor 75%, var(--fg));
+    font: 500 6.4px var(--font-mono);
+    text-anchor: middle;
+  }
+  svg :global(.ln) {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  svg :global(.dash) {
+    stroke-dasharray: 4 4;
+  }
+  svg :global(.ax) {
+    stroke: var(--line);
+  }
+  svg :global(.pt) {
+    fill: currentColor;
+  }
+  svg :global(.pt2) {
+    fill: color-mix(in srgb, currentColor 35%, var(--bg));
+  }
+</style>

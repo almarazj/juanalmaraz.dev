@@ -23,13 +23,11 @@ const [experience, projects, degrees, certificates, postDocs, about, site] = awa
   getSingleton('about/main'),
   getSingleton('site/main'),
 ]);
-const backend = projects.filter((p) => p.group === 'backend');
-const engineering = projects.filter((p) => p.group === 'engineering');
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
 const board = technologyBoard({
-  production: experience.flatMap((x) => x.stack),
-  side: projects.flatMap((p) => p.stack),
+  production: [...experience, ...projects.filter((p) => p.live)].flatMap((x) => x.stack),
+  side: projects.filter((p) => !p.live).flatMap((p) => p.stack),
   tinkering: site.tinkering ?? [],
 });
 const terminal = terminalData({ site, about, experience, projects, education: degrees, certificates, posts: postDocs }, buildInfo);
@@ -52,10 +50,7 @@ const sections = [
   },
   {
     id: 'projects', title: 'Projects', color: 'var(--c-projects)',
-    entries: [
-      { id: 'proj-backend', title: 'Backend' },
-      { id: 'proj-engineering', title: 'Earlier engineering work' },
-    ],
+    entries: projects.map((p) => ({ id: `proj-${p.id}`, title: p.title })),
   },
   {
     id: 'writing', title: 'Writing', color: 'var(--c-writing)',
@@ -80,7 +75,7 @@ const sections = [
         <Experience items={experience} now={new Date()} />
         <Education degrees={degrees} certificates={certificates} />
         <Technologies board={board} />
-        <Projects backend={backend} engineering={engineering} />
+        <Projects projects={projects} />
         <Writing posts={posts} />
         <About about={about} bioHtml={bio.html} />
       </div>

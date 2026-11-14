@@ -27,7 +27,7 @@ describe('schemas', () => {
 
   describe('URL fields accept only http and https', () => {
     const project = {
-      title: 'P', group: 'backend', year: 2025, summary: 's', stack: [], links: [] as { label: string; url: string }[],
+      title: 'P', context: 'Personal', live: false, domains: ['Backend'], year: 2025, summary: 's', stack: [], links: [] as { label: string; url: string }[],
       confidential: false, order: 1, status: 'published',
     };
     const cert = { name: 'C', issuer: 'I', year: 2025, order: 1 };

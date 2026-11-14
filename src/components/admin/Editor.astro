@@ -40,6 +40,15 @@ const hint = (f: (typeof fields)[number]) =>
               <option selected={o === v}>{o}</option>
             ))}
           </select>
+        ) : f.kind === 'multi' ? (
+          <div class="options" id={`f-${f.name}`} role="group" aria-labelledby={`l-${f.name}`} aria-describedby={describedBy} tabindex="-1">
+            {f.options.map((o) => (
+              <label class="option">
+                <input type="checkbox" name={f.name} value={o} checked={String(v).split(', ').includes(o)} />
+                {o}
+              </label>
+            ))}
+          </div>
         ) : f.kind === 'markdown' || f.kind === 'textarea' || f.kind === 'json' ? (
           <textarea
             class="admin-input"
@@ -64,7 +73,7 @@ const hint = (f: (typeof fields)[number]) =>
         );
       return (
         <div class:list={['field', f.kind]}>
-          <label for={`f-${f.name}`}>{f.name}</label>
+          {f.kind === 'multi' ? <span class="label" id={`l-${f.name}`}>{f.name}</span> : <label for={`f-${f.name}`}>{f.name}</label>}
           {f.kind === 'markdown' ? (
             <div class="split">
               {control}
@@ -113,6 +122,11 @@ const hint = (f: (typeof fields)[number]) =>
     status.textContent = '';
     const values: Record<string, string | boolean> = {};
     for (const f of fields) {
+      if (f.kind === 'multi') {
+        const picked = form.querySelectorAll<HTMLInputElement>(`input[name="${CSS.escape(f.name)}"]:checked`);
+        values[f.name] = [...picked].map((el) => el.value).join(',');
+        continue;
+      }
       const el = form.elements.namedItem(f.name) as HTMLInputElement;
       values[f.name] = f.kind === 'checkbox' ? el.checked : el.value;
     }
@@ -198,9 +212,21 @@ const hint = (f: (typeof fields)[number]) =>
     grid-column: 1 / -1;
     order: 3;
   }
-  label {
+  label,
+  .label {
     font: 500 13px/1.4 var(--font-mono);
     color: var(--muted);
+  }
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--fg);
   }
   .split {
     display: grid;
