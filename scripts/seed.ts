@@ -139,11 +139,8 @@ const about = {
   ],
   questions: [
     { q: 'Recommend a book', a: 'Ficciones', detail: 'Jorge Luis Borges', icon: 'book' },
-    { q: 'Recommend a film', a: 'Martin (Hache)', detail: 'Adolfo Aristarain, 1997', icon: 'film', link: 'https://letterboxd.com/film/martin-h/' },
-    { q: 'What are you listening to?', a: 'Havok', detail: 'Thrash metal', icon: 'music' },
-    { q: 'What are you reading?', a: 'Designing Data-Intensive Applications', detail: 'Martin Kleppmann', icon: 'book-open' },
-    { q: 'Which club?', a: 'Boca Juniors', detail: 'Buenos Aires', icon: 'flag' },
-    { q: 'Do you play?', a: 'Football', detail: 'Every week', icon: 'ball' },
+    { q: 'Recommend a film', a: 'Martin (Hache)', detail: 'Adolfo Aristarain, 1997', icon: 'film' },
+    { q: 'Recommend an album', a: 'Time Is Up', detail: 'Havok, 2011', icon: 'music' },
   ],
 };
 
