@@ -36,7 +36,7 @@ const icon = (t: Tech, variant = '') => `/tech/${t.icon}${variant}.svg`;
                 {lane.cells[l.id].length > 0 && <span class="visually-hidden">{l.label}:</span>}
                 <ul>
                   {lane.cells[l.id].map((t) => (
-                    <li class="tech">
+                    <li class="tag tech">
                       {t.icon ? (
                         <>
                           <img class:list={['ico', { light: t.dark }]} src={icon(t)} alt="" loading="lazy" />
@@ -138,15 +138,7 @@ const icon = (t: Tech, variant = '') => `/tech/${t.icon}${variant}.svg`;
     list-style: none;
   }
   .tech {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 8px 3px 7px;
-    border: 1px solid color-mix(in srgb, var(--lv) 35%, var(--line));
-    border-radius: var(--radius-control);
-    background: var(--bg);
-    font: 500 13.5px/1.35 var(--font-sans);
-    white-space: nowrap;
+    border-color: color-mix(in srgb, var(--lv) 35%, var(--line));
   }
   .ico {
     flex: none;

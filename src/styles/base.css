@@ -85,6 +85,35 @@ a {
   color: var(--muted);
 }
 
+/* Box tag: technologies on the board and the domain filter under Projects. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  font: 400 12.5px/1.5 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+button.tag {
+  cursor: pointer;
+}
+
+button.tag:hover {
+  border-color: var(--faint);
+  color: var(--fg);
+}
+
+.tag[aria-pressed='true'] {
+  border-color: var(--fg);
+  background: var(--soft);
+  color: var(--fg);
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

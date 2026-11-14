@@ -86,6 +86,13 @@ Technology and topic chips are outlined and neutral, so they sit quietly under t
 .chip { padding: 0 7px; border: 1px solid var(--line); border-radius: 4px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
 ```
 
+### Tags
+
+`.tag` is the larger box version: 6px radius, `padding: 3px 9px`, Plex Mono 12.5px in `--muted`, on `--bg`.
+The Technologies board uses it for each technology, and the Projects domain filter uses it as a toggle button.
+As a button it shows hover with a `--faint` border and `--fg` text, and the selected one (`aria-pressed="true"`) gets a `--soft` fill, `--fg` border and `--fg` text.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (filter 3, Soft).
+
 ## Typography
 
 IBM Plex, loaded from Google Fonts with system fallbacks.
@@ -176,7 +183,7 @@ Lab: [education round 2](https://claude.ai/artifact/4UnwsSnnQ3zz7KQB3XsJzn) (var
 ### Technologies
 
 A kanban with swimlanes: columns Tinkering, Side projects and Production (low to high, each with its count and its level color on a 3px top edge, header and a light column wash), and one lane per category (Languages, Frameworks, Databases, Testing, Cloud & infra) with the lane name in mono on the left.
-Each technology is a chip with its Devicon icon at text height and its name; AWS services without an icon show a letter tile.
+Each technology is a `.tag` with its Devicon icon at text height and its name, its border tinted with the level color; AWS services without an icon show a letter tile.
 Production comes from the roles' stacks and Side projects from the projects' stacks, each name at the highest level it reaches; Tinkering is the site's hand-kept `tinkering` list.
 Only names in the catalog (`src/lib/content/technologies.ts`) appear, so non-software tags stay off; empty lanes are left out.
 On phones the lanes stack, Production first in each, the chips carry the level color, and one legend (Tinkering, Side projects, Production) closes the section.
