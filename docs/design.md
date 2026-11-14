@@ -40,8 +40,7 @@ Every section, its rail entry, and its palette results use the same hue.
 | Section | Light | Dark |
 |---|---|---|
 | Experience | `#2457c5` | `#86a8ff` |
-| Projects (backend group) | `#c2410c` | `#fb8a4c` |
-| Projects (engineering group) | `#0e7c86` | `#4cc3cc` |
+| Projects | `#c2410c` | `#fb8a4c` |
 | Education | `#2f7a4f` | `#7cc79a` |
 | Writing | `#7a3fb8` | `#c49af0` |
 | About | `#b4366f` | `#f07aae` |
@@ -89,8 +88,8 @@ Technology and topic chips are outlined and neutral, so they sit quietly under t
 ### Tags
 
 `.tag` is the larger box version: 6px radius, `padding: 3px 9px`, Plex Mono 12.5px in `--muted`, on `--bg`.
-The Technologies board uses it for each technology, and the Projects domain filter uses it as a toggle button.
-As a button it shows hover with a `--faint` border and `--fg` text, and the selected one (`aria-pressed="true"`) gets a `--soft` fill, `--fg` border and `--fg` text.
+The Technologies board uses it for each technology, and the Projects domain filter uses it as a choice.
+As a choice it is a `label` around a visually hidden radio: hover gives a `--faint` border and `--fg` text, the checked one gets a `--soft` fill, `--fg` border and `--fg` text, and keyboard focus shows the focus ring on the tag.
 Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (filter 3, Soft).
 
 ## Typography
@@ -167,11 +166,11 @@ Lab: [work experience](https://claude.ai/artifact/U1ZTzqnmcHxVm1JSjX7stu) (optio
 
 ### Projects
 
-Two groups.
-Backend: a horizontal, scroll-snapping strip of media cards (132px thumbnail or architecture diagram on the left, title, year, 3-line summary, chips, link pills) with ← → buttons.
-"Earlier engineering work": a compact two-column list with a 44px thumbnail, title, year and tags.
-Confidential projects carry a "conf." badge and a diagram instead of screenshots.
-Lab: [projects round 2](https://claude.ai/artifact/SDKH9WPFWmJXN54NyEExLW) (variant D).
+One grid of cover cards for every project, three to a row in the content column and one on phones.
+Each card: a 16:9 cover (the diagram, else the image unless confidential, else a line drawing for its first domain in the projects color), then the year on the left and, on the right, a green live dot (only for live projects; a "Live in production" tooltip on hover and keyboard focus) and the context badge (Work, Client, Personal, Academic); the title in Plex Serif linking to `/projects/<id>`, the domains in mono with "confidential" when it applies, a 3-line summary, and up to three stack chips plus "+n".
+Above the grid, a domain filter of `.tag` choices with counts, "All" first and only domains that have projects; it is radios and CSS `:has()`, so it works without JavaScript.
+The side index lists each project.
+Lab: [projects](https://claude.ai/artifact/HY4Zqz6YWrVYnBCwhMthjq) (B · Cover, filter 3 Soft).
 
 ### Education
 

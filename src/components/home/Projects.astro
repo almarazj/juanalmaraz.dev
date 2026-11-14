@@ -1,209 +1,183 @@
 ---
-import type { Project } from '../../lib/content/schemas';
+import { PROJECT_DOMAINS, type Project } from '../../lib/content/schemas';
 import { imageProps } from '../../lib/images/url';
+import { projectArt } from './project-art';
 
 type Item = Project & { id: string };
 interface Props {
-  backend: Item[];
-  engineering: Item[];
+  projects: Item[];
 }
-const { backend, engineering } = Astro.props;
-const boxes = ['API', 'Queue', 'workers', 'DB'];
+const { projects } = Astro.props;
+const count = (d: string) => projects.filter((p) => p.domains.includes(d as Item['domains'][number])).length;
+const domains = PROJECT_DOMAINS.filter((d) => count(d) > 0);
+// Zero JS: the checked radio hides every card outside its domain.
+const filterCss = domains
+  .map((d) => `#projects:has(input[value="${d}"]:checked) .card:not([data-domains~="${d}"]){display:none}`)
+  .join('\n');
+const STACK_SHOWN = 3;
 ---
 
 <section id="projects" data-spy-section style="--sc: var(--c-projects)">
   <h2 class="section-label">Projects</h2>
-
-  <div id="proj-backend" class="group" data-spy-entry style="--c: var(--c-projects)">
-    <div class="group-head">
-      <h3 class="group-title">Backend</h3>
-      <div class="nav">
-        <button type="button" class="arrow" data-strip-prev aria-label="Previous projects">←</button>
-        <button type="button" class="arrow" data-strip-next aria-label="Next projects">→</button>
-      </div>
-    </div>
-    <div class="strip" data-strip role="region" aria-label="Backend projects" tabindex="0">
-      {
-        backend.map((p) => (
-          <article class="card">
-              <div class="thumb">
-                {p.diagram ? (
-                  <img {...imageProps(p.diagram, '132px')} alt={p.diagram.alt} loading="lazy" />
-                ) : p.image && !p.confidential ? (
-                  <img {...imageProps(p.image, '132px')} alt={p.image.alt} loading="lazy" />
-                ) : (
-                  <svg viewBox="0 0 132 132" role="img" aria-label="Architecture: API, queue, workers, database">
-                    {boxes.map((b, i) => (
-                      <g>
-                        <rect x="24" y={6 + i * 31} width="84" height="22" rx="4" />
-                        <text x="66" y={21 + i * 31}>
-                          {b}
-                        </text>
-                        {i < boxes.length - 1 && <path d={`M66 ${29 + i * 31} v7`} />}
-                      </g>
-                    ))}
-                  </svg>
-                )}
-              </div>
-              <div class="body">
-                <div class="title-row">
-                  <h4>{p.title}</h4>
-                  <span class="year">{p.year}</span>
-                  {p.confidential && (
-                    <span class="badge" title="Confidential client work">
-                      conf.
-                    </span>
-                  )}
-                </div>
-                <p class="summary">{p.summary}</p>
-                {p.stack.length > 0 && (
-                  <ul class="chips" aria-label="Stack">
-                    {p.stack.map((s) => (
-                      <li class="chip">{s}</li>
-                    ))}
-                  </ul>
-                )}
-                {p.links.length > 0 && (
-                  <p class="links">
-                    {p.links.map((l) => (
-                      <a class="pill" href={l.url}>
-                        {l.label} ↗
-                      </a>
-                    ))}
-                  </p>
-                )}
-              </div>
-          </article>
-        ))
-      }
-    </div>
-  </div>
-
-  <section id="proj-engineering" class="group" data-spy-entry aria-labelledby="eng-title" style="--c: var(--c-engineering)">
-    <h3 id="eng-title" class="group-title eng">Earlier engineering work</h3>
-    <ul class="eng-list">
-      {
-        engineering.map((p) => (
-          <li>
-            {p.image ? <img {...imageProps(p.image, '44px')} alt="" loading="lazy" /> : <span class="ph" />}
-            <div>
-              <p class="eng-title">
-                {p.title} <span class="year">{p.year}</span>
-              </p>
-              {p.stack.length > 0 && <p class="tags">{p.stack.join(' · ')}</p>}
+  {
+    domains.length > 1 && (
+      <fieldset class="filter">
+        <legend class="visually-hidden">Show projects by domain</legend>
+        {['All', ...domains].map((d) => (
+          <label class="tag">
+            <input class="visually-hidden" type="radio" name="project-domain" value={d} checked={d === 'All'} />
+            {d}
+            <small>{d === 'All' ? projects.length : count(d)}</small>
+          </label>
+        ))}
+      </fieldset>
+    )
+  }
+  <div class="grid">
+    {
+      projects.map((p) => {
+        const cover = p.diagram ?? (p.confidential ? undefined : p.image);
+        return (
+          <article id={`proj-${p.id}`} class="card" data-spy-entry data-domains={p.domains.join(' ')}>
+            <div class="thumb">
+              {cover ? (
+                <img {...imageProps(cover, '(max-width: 679px) 100vw, 250px')} alt={cover.alt} loading="lazy" />
+              ) : (
+                <svg viewBox="0 0 160 90" aria-hidden="true" set:html={projectArt(p.domains[0])} />
+              )}
             </div>
-          </li>
-        ))
-      }
-    </ul>
-  </section>
+            <div class="body">
+              <div class="top">
+                <span class="year">{p.year}</span>
+                <span class="marks">
+                  {p.live && (
+                    <span class="live" tabindex="0" role="img" aria-label="Live in production" data-tip="Live in production" />
+                  )}
+                  <span class="badge">{p.context}</span>
+                </span>
+              </div>
+              <h3>
+                <a href={`/projects/${p.id}`}>{p.title}</a>
+              </h3>
+              <p class="meta">
+                {p.domains.join(' · ')}
+                {p.confidential && ' · confidential'}
+              </p>
+              <p class="summary">{p.summary}</p>
+              {p.stack.length > 0 && (
+                <ul class="chips" aria-label="Stack">
+                  {p.stack.slice(0, STACK_SHOWN).map((s) => (
+                    <li class="chip">{s}</li>
+                  ))}
+                  {p.stack.length > STACK_SHOWN && <li class="chip">+{p.stack.length - STACK_SHOWN}</li>}
+                </ul>
+              )}
+            </div>
+          </article>
+        );
+      })
+    }
+  </div>
 </section>
 
+<style is:inline set:html={filterCss}></style>
+
 <style>
-  .group + .group {
-    margin-top: 32px;
-  }
-  .group-head {
+  .filter {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0 0 18px;
+    padding: 0;
+    border: 0;
   }
-  .group-title {
-    margin: 0;
-    font: 600 12.5px/1.4 var(--font-mono);
-    color: var(--c);
-  }
-  .group-title.eng {
-    margin-bottom: 12px;
-  }
-  .nav {
-    display: flex;
-    gap: 6px;
-  }
-  .arrow {
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-pill);
-    background: var(--bg);
-    color: var(--fg);
-    font-size: 15px;
-    cursor: pointer;
-  }
-  .arrow:hover:not(:disabled) {
-    border-color: var(--faint);
-  }
-  .arrow:disabled {
+  .filter small {
+    font: 400 11px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
     color: var(--faint);
-    cursor: default;
   }
-  .strip {
-    display: flex;
-    gap: 12px;
-    margin: 0;
-    padding: 0 0 8px;
-    list-style: none;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+    gap: 16px;
   }
   .card {
-    flex: 0 0 min(460px, 88%);
-    scroll-snap-align: start;
+    position: relative;
     display: grid;
-    grid-template-columns: 132px minmax(0, 1fr);
-    gap: 16px;
-    padding: 12px;
+    grid-template-rows: auto 1fr;
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .card:hover {
+    border-color: var(--faint);
   }
   .thumb {
-    width: 132px;
-    height: 132px;
-    border-radius: var(--radius-control);
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    border-bottom: 1px solid var(--line);
     background: var(--soft);
-    overflow: hidden;
+    color: var(--c-projects);
   }
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+  .thumb img,
   .thumb svg {
     display: block;
     width: 100%;
     height: 100%;
-    color: var(--c);
+    object-fit: cover;
   }
-  .thumb rect {
-    fill: color-mix(in srgb, var(--c) 12%, var(--bg));
+  .thumb svg :global(.box) {
+    fill: color-mix(in srgb, currentColor 12%, var(--bg));
     stroke: currentColor;
   }
-  .thumb text {
-    fill: color-mix(in srgb, var(--c) 75%, var(--fg));
-    font: 500 10px var(--font-mono);
+  .thumb svg :global(.lbl) {
+    fill: color-mix(in srgb, currentColor 75%, var(--fg));
+    font: 500 6.4px var(--font-mono);
     text-anchor: middle;
   }
-  .thumb path {
+  .thumb svg :global(.ln) {
+    fill: none;
     stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
   }
-  .title-row {
+  .thumb svg :global(.dash) {
+    stroke-dasharray: 4 4;
+  }
+  .thumb svg :global(.ax) {
+    stroke: var(--line);
+  }
+  .thumb svg :global(.pt) {
+    fill: currentColor;
+  }
+  .thumb svg :global(.pt2) {
+    fill: color-mix(in srgb, currentColor 35%, var(--bg));
+  }
+  .body {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+    padding: 12px 14px 14px;
+  }
+  .top {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 8px;
-  }
-  h4 {
-    margin: 0;
-    font: 600 16px/1.35 var(--font-serif);
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 20px;
   }
   .year {
     font: 400 12px/1 var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--faint);
+  }
+  .marks {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .badge {
     padding: 1px 6px;
@@ -212,93 +186,89 @@ const boxes = ['API', 'Queue', 'workers', 'DB'];
     font: 500 11px/1.4 var(--font-mono);
     color: var(--muted);
   }
+  /* Above the card's stretched link, so hover and focus reach the tooltip. */
+  .live {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 15px;
+    height: 15px;
+    margin: -4px;
+    padding: 4px;
+    border-radius: 50%;
+  }
+  .live::before {
+    content: '';
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+  }
+  .live::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    translate: -50% 4px;
+    padding: 4px 8px;
+    border-radius: var(--radius-control);
+    background: var(--fg);
+    color: var(--bg);
+    font: 500 11.5px/1.3 var(--font-mono);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.12s,
+      translate 0.12s;
+  }
+  .live:hover::after,
+  .live:focus-visible::after {
+    opacity: 1;
+    translate: -50% 0;
+  }
+  h3 {
+    margin: 0;
+    font: 600 16px/1.35 var(--font-serif);
+  }
+  h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h3 a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .card:has(h3 a:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  h3 a:focus-visible {
+    outline: none;
+  }
+  .meta {
+    margin: 0;
+    font: 400 12px/1.5 var(--font-mono);
+    color: var(--faint);
+  }
   .summary {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     line-clamp: 3;
     overflow: hidden;
-    margin: 6px 0 10px;
+    margin: 0 0 4px;
     font-size: 14.5px;
     line-height: 1.5;
     color: var(--muted);
   }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 10px 0 0;
-  }
-  .links .pill {
-    min-height: 28px;
-    padding: 2px 10px;
-    font-size: 13px;
-  }
-  .eng-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-    gap: 12px 24px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .eng-list li {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 12px;
-    align-items: center;
-  }
-  .eng-list img,
-  .ph {
-    display: block;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-control);
-    object-fit: cover;
-    background: var(--soft);
-    border: 1px solid var(--line);
-  }
-  .eng-title {
-    margin: 0;
-    font-family: var(--font-serif);
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .tags {
-    margin: 2px 0 0;
-    font: 400 12px/1.4 var(--font-mono);
-    color: var(--c);
-  }
-  @media (max-width: 679px) {
-    .card {
-      grid-template-columns: 1fr;
-    }
-    .thumb {
-      width: 100%;
-      height: 132px;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .strip {
-      scroll-behavior: auto;
+    .card,
+    .live::after {
+      transition: none;
     }
   }
 </style>
-
-<script>
-  for (const strip of document.querySelectorAll<HTMLElement>('[data-strip]')) {
-    const group = strip.parentElement!;
-    const prev = group.querySelector<HTMLButtonElement>('[data-strip-prev]')!;
-    const next = group.querySelector<HTMLButtonElement>('[data-strip-next]')!;
-    const step = () => (strip.firstElementChild as HTMLElement | null)?.offsetWidth ?? strip.clientWidth;
-    const sync = () => {
-      prev.disabled = strip.scrollLeft <= 1;
-      next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
-    };
-    prev.addEventListener('click', () => strip.scrollBy({ left: -step() }));
-    next.addEventListener('click', () => strip.scrollBy({ left: step() }));
-    strip.addEventListener('scroll', sync, { passive: true });
-    addEventListener('resize', sync);
-    sync();
-  }
-</script>

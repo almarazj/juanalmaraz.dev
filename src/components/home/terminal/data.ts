@@ -52,7 +52,7 @@ export function terminalData(c: TerminalContent, build: Build): TerminalData {
       `# ${p.title}\n${[p.year, p.context, ...p.domains, ...(p.live ? ['live'] : []), ...p.stack, ...(p.confidential ? ['confidential'] : [])].join(' · ')}\n\n${p.summary}`
         + (p.bodyMd ? `\n\n${p.bodyMd.trim()}` : '')
         + (p.links.length ? `\n\n${p.links.map((l) => `- ${l.label}: ${l.url}`).join('\n')}` : ''),
-      p.links[0]?.url ?? '/#projects',
+      p.links[0]?.url ?? `/#proj-${p.id}`,
     ),
   ]);
   const posts = c.posts.map((p): [string, FileNode] => [

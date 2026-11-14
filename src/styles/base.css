@@ -99,19 +99,25 @@ a {
   white-space: nowrap;
 }
 
-button.tag {
+/* As a choice: a label wrapping a visually hidden radio or checkbox. */
+label.tag {
   cursor: pointer;
 }
 
-button.tag:hover {
+label.tag:hover {
   border-color: var(--faint);
   color: var(--fg);
 }
 
-.tag[aria-pressed='true'] {
+.tag:has(:checked) {
   border-color: var(--fg);
   background: var(--soft);
   color: var(--fg);
+}
+
+.tag:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .pill {

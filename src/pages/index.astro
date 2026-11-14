@@ -23,9 +23,6 @@ const [experience, projects, degrees, certificates, postDocs, about, site] = awa
   getSingleton('about/main'),
   getSingleton('site/main'),
 ]);
-// shortcut: keeps the two-group layout until the Projects section becomes one filterable grid.
-const backend = projects.filter((p) => p.domains.includes('Backend'));
-const engineering = projects.filter((p) => !p.domains.includes('Backend'));
 const bio = await renderMarkdown(about.bio);
 const posts = postDocs.map((p) => ({ ...p, minutes: readingMinutes(p.bodyMd) }));
 const board = technologyBoard({
@@ -53,10 +50,7 @@ const sections = [
   },
   {
     id: 'projects', title: 'Projects', color: 'var(--c-projects)',
-    entries: [
-      { id: 'proj-backend', title: 'Backend' },
-      { id: 'proj-engineering', title: 'Earlier engineering work' },
-    ],
+    entries: projects.map((p) => ({ id: `proj-${p.id}`, title: p.title })),
   },
   {
     id: 'writing', title: 'Writing', color: 'var(--c-writing)',
@@ -81,7 +75,7 @@ const sections = [
         <Experience items={experience} now={new Date()} />
         <Education degrees={degrees} certificates={certificates} />
         <Technologies board={board} />
-        <Projects backend={backend} engineering={engineering} />
+        <Projects projects={projects} />
         <Writing posts={posts} />
         <About about={about} bioHtml={bio.html} />
       </div>

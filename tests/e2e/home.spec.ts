@@ -36,31 +36,31 @@ test('work experience cards show tenure, type and highlights', async ({ page }) 
   await expect(page.locator('#exp-untref-ta .summary')).toHaveCount(0);
 });
 
-test('backend strip scrolls with the next button and marks confidential projects', async ({ page }) => {
-  const strip = page.locator('[data-strip]');
-  const before = await strip.evaluate((el) => el.scrollLeft);
-  await page.getByRole('button', { name: 'Next projects' }).click();
-  await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
-  const conf = strip.locator('article', { hasText: 'Document ingestion pipeline' });
-  await expect(conf.getByText('conf.', { exact: true })).toBeVisible();
+test('projects share one grid that the domain filter narrows without JavaScript', async ({ browser }) => {
+  const page = await browser.newPage({ javaScriptEnabled: false });
+  await page.goto('/');
+  const cards = page.locator('#projects article');
+  const filter = page.getByRole('group', { name: 'Show projects by domain' });
+  await expect(cards).toHaveCount(7);
+  await expect(filter.getByText('DSP')).toContainText('2');
+
+  await filter.getByText('Electronics').click();
+  await expect(cards.filter({ visible: true })).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Vibration isolation system' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Webhook relay' })).toBeHidden();
+
+  await filter.getByText('All').click();
+  await expect(cards.filter({ visible: true })).toHaveCount(7);
+  await page.close();
 });
 
-test('strip arrows are disabled at each end', async ({ page }) => {
-  const strip = page.locator('[data-strip]');
-  const prev = page.getByRole('button', { name: 'Previous projects' });
-  const next = page.getByRole('button', { name: 'Next projects' });
-  await expect(prev).toBeDisabled();
-  await expect(next).toBeEnabled();
-  await strip.evaluate((el) => el.scrollTo({ left: el.scrollWidth, behavior: 'instant' }));
-  await expect(next).toBeDisabled();
-  await expect(prev).toBeEnabled();
-});
-
-
-test('earlier engineering work lists engineering projects', async ({ page }) => {
-  const group = page.getByRole('region', { name: 'Earlier engineering work' });
-  await expect(group.getByRole('listitem')).toHaveCount(4);
-  await expect(group.getByText('Room impulse response tool')).toBeVisible();
+test('a project card shows its context, live state and confidential work, and links to its page', async ({ page }) => {
+  const card = page.locator('#proj-document-ingestion');
+  await expect(card.getByText('Client', { exact: true })).toBeVisible();
+  await expect(card.getByText('Backend · confidential')).toBeVisible();
+  await expect(card.getByRole('img', { name: 'Live in production' })).toBeVisible();
+  await expect(page.locator('#proj-webhook-relay').getByRole('img', { name: 'Live in production' })).toHaveCount(0);
+  await expect(card.getByRole('link', { name: 'Document ingestion pipeline' })).toHaveAttribute('href', '/projects/document-ingestion');
 });
 
 test('a certificate opens a dialog with the original link and closes back to its trigger', async ({ page }) => {
